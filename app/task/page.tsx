@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { completeTaskAction, subscribePlanAction } from "./actions";
+import { logoutAction } from "@/lib/auth/actions";
 import { getUserDashboardData } from "@/lib/supabase/earnings";
 
 const taskCatalog = [
@@ -40,7 +42,7 @@ export default async function TaskPage({
               ? `Subscription activated for ${params.plan || "your plan"}.`
               : params.status === "error"
                 ? params.message || "This action could not be completed."
-                : "Complete a task to add real earnings to your account.";
+                : "Choose an activity to get started. Your wallet updates when rewards are recorded.";
 
     const wallet = dashboard.wallet ?? {
         balance_minor: 0,
@@ -49,170 +51,105 @@ export default async function TaskPage({
         currency: "BDT",
         updated_at: null,
     };
+    const metrics = [
+        { label: "Wallet balance", value: wallet.balance_minor },
+        { label: "Pending review", value: wallet.pending_minor },
+        { label: "Approved", value: wallet.approved_minor },
+    ];
 
     return (
-        <main className="mx-auto min-h-screen max-w-7xl px-4 py-8 text-slate-100 sm:px-6 lg:px-8">
-            <div className="mb-8 flex flex-col gap-4 rounded-[28px] border border-white/10 bg-[#071d23]/80 p-5 shadow-[0_20px_80px_rgba(7,25,30,0.7)] backdrop-blur sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+        <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 text-[#f1f4e9] sm:px-8 sm:py-10">
+            <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/[0.1] pb-5">
+                <Link href="/" className="flex items-center gap-2.5 text-base font-extrabold tracking-tight text-white">
+                    <span className="grid size-8 place-items-center rounded-lg bg-[#c9f36a] text-xs font-black text-[#17210d]">T</span>taskmint
+                </Link>
+                <nav className="flex items-center gap-2 sm:gap-3">
+                    <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] transition hover:bg-white/[0.05] hover:text-white">Dashboard</Link>
+                    <form action={logoutAction}><button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/[0.04] hover:text-white">Sign out</button></form>
+                </nav>
+            </header>
+
+            <section className="animate-rise-in flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
                 <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#9ef8dc]">
-                        TaskMint task board
-                    </p>
-                    <h1 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                        Real user task and reward flow
-                    </h1>
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">Task board</p>
+                    <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Make your next move.</h1>
+                    <p className="mt-3 max-w-xl text-sm leading-6 text-[#9aa99f]">Explore available activities and review the reward and time before you begin.</p>
                 </div>
+                <p className="text-xs text-[#748278]">Currency: {wallet.currency || "BDT"}</p>
+            </section>
 
-                <div className="flex items-center gap-3">
-                    <a
-                        href="/dashboard"
-                        className="rounded-full border border-white/10 bg-white/3 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-[#7ef5d3]/40 hover:bg-[#7ef5d3]/10"
-                    >
-                        Dashboard
-                    </a>
-                    <a
-                        href="/login"
-                        className="rounded-full bg-[#7ef5d3] px-5 py-2.5 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc]"
-                    >
-                        Sign out
-                    </a>
-                </div>
+            <div className={`mt-7 border px-4 py-3 text-sm ${params.status === "error" ? "border-[#e88d82]/30 bg-[#e88d82]/[0.08] text-[#f0b9b1]" : params.status ? "border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] text-[#d6f5a4]" : "border-white/[0.1] bg-[#111e19] text-[#b8c5b9]"}`} role="status">
+                <span className="mr-2 text-[#c9f36a]">{params.status === "error" ? "!" : "·"}</span>{statusMessage}
             </div>
 
-            <div className="mb-6 rounded-2xl border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-4 py-3 text-sm text-[#d9fff6]">
-                {statusMessage}
-            </div>
-
-            <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {[
-                    { label: "Balance", value: `৳${Number(wallet.balance_minor || 0).toLocaleString("en-BD")}` },
-                    { label: "Pending", value: `৳${Number(wallet.pending_minor || 0).toLocaleString("en-BD")}` },
-                    { label: "Approved", value: `৳${Number(wallet.approved_minor || 0).toLocaleString("en-BD")}` },
-                    { label: "Currency", value: wallet.currency || "BDT" },
-                ].map((item) => (
-                    <div key={item.label} className="rounded-3xl border border-white/10 bg-[#091921] p-5">
-                        <p className="text-sm text-slate-400">{item.label}</p>
-                        <p className="mt-4 text-2xl font-black text-white">{item.value}</p>
-                    </div>
+            <section className="mt-5 grid gap-3 sm:grid-cols-3">
+                {metrics.map((item, index) => (
+                    <article key={item.label} className={`border px-5 py-4 ${index === 0 ? "border-[#c9f36a]/25 bg-[#c9f36a]/[0.055]" : "border-white/[0.1] bg-[#111e19]"}`}>
+                        <p className="text-xs text-[#9aa99f]">{item.label}</p>
+                        <p className={`mt-2 text-2xl font-semibold tracking-tight ${index === 0 ? "text-[#d9f7a0]" : "text-white"}`}>৳{Number(item.value || 0).toLocaleString("en-BD")}</p>
+                    </article>
                 ))}
             </section>
 
-            <section className="grid gap-6 xl:grid-cols-[1.5fr_0.95fr]">
-                <div className="rounded-[28px] border border-white/10 bg-[#091921] p-5 sm:p-6">
-                    <div className="mb-5 flex items-center justify-between gap-3">
-                        <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-                                Available tasks
-                            </p>
-                            <h2 className="mt-2 text-2xl font-black text-white">Earn from real user activity</h2>
-                        </div>
-                        <span className="rounded-full border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-3 py-1 text-xs font-semibold text-[#9ef8dc]">
-                            {taskCatalog.length} tasks
-                        </span>
+            <section className="mt-8 grid items-start gap-8 xl:grid-cols-[1.45fr_0.75fr]">
+                <div>
+                    <div className="mb-4 flex items-end justify-between gap-4 border-b border-white/[0.1] pb-4">
+                        <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#839187]">Available activities</p><h2 className="mt-1.5 text-xl font-semibold text-white">Pick a task</h2></div>
+                        <span className="text-xs text-[#839187]">{taskCatalog.length} available</span>
                     </div>
-
-                    <div className="space-y-4">
-                        {taskCatalog.map((task) => (
-                            <article key={task.id} className="rounded-3xl border border-white/10 bg-[#071c24] p-4">
-                                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="rounded-full border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ef8dc]">
-                                                Featured
-                                            </span>
-                                            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-slate-300">
-                                                Reward task
-                                            </span>
-                                        </div>
-
-                                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                                            <div>
-                                                <h3 className="text-xl font-bold text-white">{task.title}</h3>
-                                                <p className="mt-1 text-sm text-slate-400">{task.description}</p>
-                                            </div>
-                                            <div className="rounded-2xl border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-3 py-2 text-right">
-                                                <p className="text-[10px] uppercase tracking-[0.2em] text-[#9ef8dc]">Reward</p>
-                                                <p className="mt-1 text-xl font-black text-[#9ef8dc]">৳{task.rewardMinor}</p>
-                                            </div>
+                    <div className="divide-y divide-white/[0.1] border-y border-white/[0.1]">
+                        {taskCatalog.map((task, index) => (
+                            <article key={task.id} className="group py-5 transition-colors hover:bg-white/[0.015] sm:px-3">
+                                <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
+                                    <div className="flex gap-4">
+                                        <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-white/[0.1] bg-[#111e19] font-mono text-xs text-[#c9f36a]">0{index + 1}</span>
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-white">{task.title}</h3>{index === 0 ? <span className="rounded-sm bg-[#c9f36a]/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[#c9f36a]">Featured</span> : null}</div>
+                                            <p className="mt-1.5 max-w-xl text-sm leading-5 text-[#9aa99f]">{task.description}</p>
                                         </div>
                                     </div>
-
-                                    <div className="flex items-center gap-3 lg:flex-col lg:items-end">
-                                        <div className="text-left lg:text-right">
-                                            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Time</p>
-                                            <p className="mt-1 text-lg font-bold text-white">{task.duration}</p>
-                                        </div>
-
+                                    <div className="flex items-center justify-between gap-4 pl-14 sm:justify-end sm:pl-0">
+                                        <div className="text-left sm:text-right"><p className="text-[10px] uppercase tracking-[0.12em] text-[#748278]">{task.duration}</p><p className="mt-1 font-semibold text-[#d9f7a0]">৳{task.rewardMinor}</p></div>
                                         <form action={completeTaskAction}>
                                             <input type="hidden" name="taskId" value={task.id} />
                                             <input type="hidden" name="title" value={task.title} />
                                             <input type="hidden" name="rewardMinor" value={String(task.rewardMinor)} />
-                                            <button
-                                                type="submit"
-                                                className="rounded-full bg-[#7ef5d3] px-4 py-2.5 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc]"
-                                            >
-                                                Complete task
-                                            </button>
+                                            <button type="submit" className="rounded-lg bg-[#c9f36a] px-3.5 py-2.5 text-xs font-bold text-[#17210d] transition hover:bg-[#dcff86]">Complete task <span aria-hidden="true">↗</span></button>
                                         </form>
                                     </div>
                                 </div>
                             </article>
                         ))}
                     </div>
+                    <p className="mt-4 text-xs leading-5 text-[#748278]">Rewards are subject to campaign terms and any required review.</p>
                 </div>
 
-                <aside className="rounded-[28px] border border-white/10 bg-[#091921] p-5 sm:p-6">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-                        Premium access
-                    </p>
-                    <h2 className="mt-2 text-2xl font-black text-white">Flower View / Subscribe</h2>
-
-                    <div className="mt-5 space-y-3">
+                <aside className="border border-white/[0.1] bg-[#111e19] p-5 sm:p-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#c9f36a]">Premium access</p>
+                    <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Get more from TaskMint.</h2>
+                    <p className="mt-2 text-sm leading-5 text-[#9aa99f]">Explore plans and see the benefits available to your account.</p>
+                    <div className="mt-5 divide-y divide-white/[0.1] border-y border-white/[0.1]">
                         {(dashboard.plans || []).map((plan) => {
                             const isActive = (dashboard.subscriptions || []).some(
                                 (subscription) => subscription.plan_key === plan.key && subscription.status === "active",
                             );
 
                             return (
-                                <div key={plan.key} className="rounded-3xl border border-white/10 bg-[#071c24] p-4">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div>
-                                            <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                                            <p className="mt-1 text-sm text-slate-400">{plan.description}</p>
-                                        </div>
-                                        <span className="rounded-full border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ef8dc]">
-                                            {isActive ? "Active" : "Open"}
-                                        </span>
+                                <div key={plan.key} className="py-4">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div><h3 className="text-sm font-semibold text-white">{plan.name}</h3><p className="mt-1.5 text-xs leading-5 text-[#9aa99f]">{plan.description}</p></div>
+                                        <span className={`shrink-0 rounded-sm px-2 py-1 text-[9px] font-bold uppercase tracking-[0.08em] ${isActive ? "bg-[#c9f36a]/10 text-[#d6f5a4]" : "bg-white/[0.06] text-[#9aa99f]"}`}>{isActive ? "Active" : "Available"}</span>
                                     </div>
-
-                                    <div className="mt-4 flex items-end justify-between gap-3">
-                                        <div>
-                                            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Price</p>
-                                            <p className="mt-1 text-2xl font-black text-white">৳{plan.price_minor}</p>
-                                        </div>
-
-                                        <form action={subscribePlanAction}>
-                                            <input type="hidden" name="planKey" value={plan.key} />
-                                            <button
-                                                type="submit"
-                                                className="rounded-full border border-[#7ef5d3]/40 bg-[#7ef5d3]/10 px-4 py-2 text-sm font-bold text-[#9ef8dc] transition hover:bg-[#7ef5d3]/20"
-                                            >
-                                                {isActive ? "Renew" : "Subscribe"}
-                                            </button>
-                                        </form>
+                                    <div className="mt-4 flex items-center justify-between gap-3">
+                                        <p className="text-lg font-semibold text-white">৳{plan.price_minor}<span className="ml-1 text-[10px] font-normal text-[#748278]">BDT</span></p>
+                                        <form action={subscribePlanAction}><input type="hidden" name="planKey" value={plan.key} /><button type="submit" className="rounded-lg border border-[#c9f36a]/30 px-3 py-2 text-xs font-semibold text-[#d6f5a4] transition hover:bg-[#c9f36a]/10">{isActive ? "Renew plan" : "View plan"}</button></form>
                                     </div>
-
-                                    <ul className="mt-4 space-y-2 text-sm text-slate-300">
-                                        {(plan.features || []).map((feature) => (
-                                            <li key={feature} className="flex items-center gap-2">
-                                                <span className="h-2 w-2 rounded-full bg-[#7ef5d3]" />
-                                                <span>{feature}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                    {(plan.features || []).length > 0 ? <ul className="mt-4 space-y-2">{(plan.features || []).map((feature) => <li key={feature} className="flex gap-2 text-xs text-[#a9b5aa]"><span className="text-[#c9f36a]">—</span><span>{feature}</span></li>)}</ul> : null}
                                 </div>
                             );
                         })}
                     </div>
+                    <div className="mt-5 border-l-2 border-[#c9f36a]/50 pl-3"><p className="text-xs leading-5 text-[#839187]">Plan benefits and availability are managed through your TaskMint account.</p></div>
                 </aside>
             </section>
         </main>

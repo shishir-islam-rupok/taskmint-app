@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -91,50 +92,56 @@ export default function LoginPage() {
     }
 
     return (
-        <main className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-6 py-16">
-            <div className="grid w-full max-w-4xl gap-8 overflow-hidden rounded-4xl border border-white/10 bg-[#081b22] shadow-2xl shadow-[#0b2431]/40 lg:grid-cols-2">
-                <div className="bg-linear-to-br from-[#0d1d27] via-[#0a1b22] to-[#071114] p-8 sm:p-10">
-                    <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#9ef8dc]">
-                        Secure access
+        <main className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center px-5 py-10 sm:px-8 sm:py-16">
+            <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl border border-white/10 bg-[#111e19] shadow-[0_32px_100px_rgba(0,0,0,0.35)] lg:grid-cols-[0.95fr_1.05fr]">
+                <div className="order-2 relative flex flex-col overflow-hidden bg-[radial-gradient(ellipse_at_top_left,rgba(201,243,106,0.13),transparent_55%),linear-gradient(145deg,#172720,#101b16_65%,#0e1814)] p-7 sm:p-10 lg:order-1 lg:p-12">
+                    <div className="absolute -right-20 top-28 size-64 rounded-full border border-[#c9f36a]/10" />
+                    <div className="absolute -right-10 top-38 size-44 rounded-full border border-[#c9f36a]/10" />
+                    <Link href="/" className="relative flex w-fit items-center gap-2.5 text-base font-extrabold tracking-tight text-white"><span className="grid size-8 place-items-center rounded-lg bg-[#c9f36a] text-xs font-black text-[#17210d]">T</span>taskmint</Link>
+                    <div className="relative mt-16 sm:mt-24">
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">
+                        Your work, in focus
                     </p>
-                    <h1 className="mt-5 text-4xl font-black text-white">Welcome to TaskMint</h1>
-                    <p className="mt-4 text-base leading-7 text-slate-300">
-                        Sign in to review task eligibility, manage your wallet, and track approved submissions with clear payout visibility.
+                    <h1 className="mt-5 max-w-sm text-4xl font-semibold leading-tight tracking-[-0.03em] text-white sm:text-5xl">A better view of your online work.</h1>
+                    <p className="mt-4 max-w-md text-sm leading-7 text-[#a9b5aa] sm:text-base">
+                        Sign in to find activities, follow your rewards, and manage your account from one secure workspace.
                     </p>
 
-                    <div className="mt-8 space-y-3">
+                    <div className="mt-9 space-y-3">
                         {[
-                            "Email verification on signup",
-                            "Role-based dashboard access",
-                            "Protected payout and review flows",
+                            "Private, authenticated account access",
+                            "Clear balance and reward status",
+                            "Activities with upfront reward details",
                         ].map((item) => (
-                            <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/3 px-3 py-3 text-sm text-slate-200">
-                                <div className="h-2.5 w-2.5 rounded-full bg-[#7ef5d3]" />
+                            <div key={item} className="flex items-center gap-3 border-b border-white/[0.08] py-3 text-sm text-[#d5ded2]">
+                                <div className="grid size-5 shrink-0 place-items-center rounded-full border border-[#c9f36a]/35 text-[10px] text-[#c9f36a]">✓</div>
                                 <span>{item}</span>
                             </div>
                         ))}
                     </div>
+                    </div>
+                    <p className="relative mt-auto pt-12 text-xs text-[#839187]">Secure sign-in powered by Supabase</p>
                 </div>
 
-                <div className="p-8 sm:p-10">
-                    <div className="flex gap-2 rounded-full border border-white/10 bg-[#091921] p-1">
+                <div className="order-1 p-7 sm:p-10 lg:order-2 lg:p-12">
+                    <div className="flex gap-1 rounded-lg border border-white/10 bg-[#0d1915] p-1">
                         <button
                             type="button"
                             onClick={() => setMode("signin")}
-                            className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold transition ${mode === "signin" ? "bg-[#7ef5d3] text-[#06151b]" : "text-slate-300"}`}
+                            className={`flex-1 rounded-md px-3 py-2.5 text-sm font-semibold transition ${mode === "signin" ? "bg-[#c9f36a] text-[#17210d]" : "text-[#a9b5aa] hover:text-white"}`}
                         >
                             Sign in
                         </button>
                         <button
                             type="button"
                             onClick={() => setMode("signup")}
-                            className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold transition ${mode === "signup" ? "bg-[#7ef5d3] text-[#06151b]" : "text-slate-300"}`}
+                            className={`flex-1 rounded-md px-3 py-2.5 text-sm font-semibold transition ${mode === "signup" ? "bg-[#c9f36a] text-[#17210d]" : "text-[#a9b5aa] hover:text-white"}`}
                         >
                             Create account
                         </button>
                     </div>
 
-                    <h2 className="mt-6 text-3xl font-bold text-white">
+                    <h2 className="mt-8 text-3xl font-semibold tracking-tight text-white">
                         {mode === "signin" ? "Access your account" : "Create your account"}
                     </h2>
 
@@ -144,7 +151,7 @@ export default function LoginPage() {
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
                             placeholder="you@example.com"
-                            className="w-full rounded-full border border-white/10 bg-[#091921] px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-[#7ef5d3]/70"
+                            className="w-full rounded-lg border border-white/10 bg-[#0d1915] px-4 py-3.5 text-white placeholder:text-[#748278] outline-none transition focus:border-[#c9f36a]/70"
                             required
                         />
 
@@ -153,7 +160,7 @@ export default function LoginPage() {
                             value={password}
                             onChange={(event) => setPassword(event.target.value)}
                             placeholder="Password"
-                            className="w-full rounded-full border border-white/10 bg-[#091921] px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-[#7ef5d3]/70"
+                            className="w-full rounded-lg border border-white/10 bg-[#0d1915] px-4 py-3.5 text-white placeholder:text-[#748278] outline-none transition focus:border-[#c9f36a]/70"
                             required
                             minLength={6}
                         />
@@ -173,7 +180,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full rounded-full bg-[#7ef5d3] px-4 py-3 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc] disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full rounded-lg bg-[#c9f36a] px-4 py-3.5 text-sm font-bold text-[#17210d] transition hover:bg-[#dcff86] disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {loading ? (mode === "signin" ? "Signing in..." : "Creating account...") : mode === "signin" ? "Sign in with email" : "Create account"}
                         </button>
@@ -183,7 +190,7 @@ export default function LoginPage() {
                         {oauthProviders.map((provider) => (
                             <button
                                 key={provider}
-                                className="flex w-full items-center justify-center rounded-full border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#7ef5d3]/40 hover:bg-[#7ef5d3]/10"
+                                className="flex w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.025] px-4 py-3 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.05]"
                                 type="button"
                                 onClick={() => handleProviderLogin(provider)}
                             >
@@ -192,7 +199,7 @@ export default function LoginPage() {
                         ))}
                     </div>
 
-                    <div className="mt-6 rounded-2xl border border-white/10 bg-[#091921] p-4 text-sm text-slate-300">
+                    <div className="mt-6 border-t border-white/[0.08] pt-4 text-xs leading-5 text-[#839187]">
                         {configured
                             ? "Supabase auth is enabled for live sign-in and account creation."
                             : "Supabase env values are not configured yet. Add your project URL and key to enable authentication."}

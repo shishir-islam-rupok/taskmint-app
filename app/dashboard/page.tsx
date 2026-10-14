@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getUserDashboardData } from "@/lib/supabase/earnings";
 
 export const dynamic = "force-dynamic";
 
@@ -20,55 +21,70 @@ export default async function DashboardPage() {
     }
 
     const displayName = claims.user_metadata?.full_name || claims.email?.split("@")[0] || "TaskMint User";
+    const dashboard = await getUserDashboardData();
+    const wallet = dashboard.wallet ?? {
+        balance_minor: 0,
+        pending_minor: 0,
+        approved_minor: 0,
+        currency: "BDT",
+        updated_at: null,
+    };
+    const formatMoney = (amount: number) => `৳${Number(amount || 0).toLocaleString("en-BD")}`;
 
     return (
-        <main className="mx-auto min-h-screen max-w-6xl px-6 py-10">
-            <div className="mb-8 flex items-center justify-between gap-4">
+        <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
+            <div className="mb-9 flex items-center justify-between gap-4 border-b border-white/[0.1] pb-6">
                 <div>
-                    <p className="text-sm uppercase tracking-[0.22em] text-[#9ef8dc]">Dashboard</p>
-                    <h1 className="mt-2 text-4xl font-black text-white">Welcome, {displayName}</h1>
+                    <Link href="/" className="mb-6 flex w-fit items-center gap-2 text-sm font-extrabold tracking-tight text-white"><span className="grid size-7 place-items-center rounded-md bg-[#c9f36a] text-[10px] font-black text-[#17210d]">T</span>taskmint</Link>
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">Your workspace</p>
+                    <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Welcome back, {displayName}</h1>
                 </div>
 
                 <form action={logoutAction}>
                     <button
                         type="submit"
-                        className="rounded-full border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-3 py-2 text-sm font-semibold text-[#9ef8dc] transition hover:bg-[#7ef5d3]/20"
+                        className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/[0.04] hover:text-white"
                     >
                         Sign out
                     </button>
                 </form>
             </div>
 
-            <div className="mt-8 max-w-3xl rounded-3xl border border-white/10 bg-[#091921] p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2 className="text-lg font-semibold text-white">Account details</h2>
-                        <p className="mt-2 text-sm text-slate-400">
-                            Your session is active. Continue to the task board to start earning.
-                        </p>
-                    </div>
+            <section className="animate-rise-in grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                    { label: "Wallet balance", value: formatMoney(wallet.balance_minor), hint: "Current account balance", accent: true },
+                    { label: "Pending review", value: formatMoney(wallet.pending_minor), hint: "Rewards awaiting review" },
+                    { label: "Approved rewards", value: formatMoney(wallet.approved_minor), hint: "Approved in your wallet" },
+                    { label: "Account status", value: claims.email_verified ? "Verified" : "Pending", hint: claims.email_verified ? "Email confirmed" : "Confirm your email" },
+                ].map((item) => (
+                    <article key={item.label} className={`border p-5 ${item.accent ? "border-[#c9f36a]/30 bg-[#c9f36a]/[0.06]" : "border-white/[0.1] bg-[#111e19]"}`}>
+                        <p className="text-xs font-medium text-[#9aa99f]">{item.label}</p>
+                        <p className={`mt-4 text-2xl font-semibold tracking-tight ${item.accent ? "text-[#d9f7a0]" : "text-white"}`}>{item.value}</p>
+                        <p className="mt-1.5 text-xs text-[#748278]">{item.hint}</p>
+                    </article>
+                ))}
+            </section>
 
-                    <Link
-                        href="/task"
-                        className="inline-flex rounded-full bg-[#7ef5d3] px-5 py-2.5 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc]"
-                    >
-                        Open task board
-                    </Link>
+            <section className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                <div className="border border-white/[0.1] bg-[#111e19] p-6 sm:p-8">
+                    <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#c9f36a]">Next step</p>
+                            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">Find your next activity.</h2>
+                            <p className="mt-2 max-w-md text-sm leading-6 text-[#9aa99f]">Browse available tasks, review the reward and time, then keep an eye on progress in your wallet.</p>
+                        </div>
+                        <Link href="/task" className="inline-flex shrink-0 items-center justify-center gap-3 rounded-lg bg-[#c9f36a] px-5 py-3 text-sm font-bold text-[#17210d] transition hover:-translate-y-0.5 hover:bg-[#dcff86]">Browse tasks <span aria-hidden="true">↗</span></Link>
+                    </div>
                 </div>
-
-                <dl className="mt-6 grid gap-4 sm:grid-cols-2">
-                    <div>
-                        <dt className="text-sm text-slate-400">Email</dt>
-                        <dd className="mt-1 break-all text-slate-100">{claims.email}</dd>
-                    </div>
-                    <div>
-                        <dt className="text-sm text-slate-400">Email verification</dt>
-                        <dd className="mt-1 text-slate-100">
-                            {claims.email_verified ? "Verified" : "Awaiting confirmation"}
-                        </dd>
-                    </div>
-                </dl>
-            </div>
+                <div className="border border-white/[0.1] bg-[#111e19] p-6 sm:p-8">
+                    <div className="flex items-center justify-between gap-3"><h2 className="text-base font-semibold text-white">Account details</h2><span className="rounded-full border border-[#c9f36a]/20 bg-[#c9f36a]/[0.07] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#d6f5a4]">Secure</span></div>
+                    <dl className="mt-5 space-y-4">
+                        <div><dt className="text-xs text-[#748278]">Email address</dt><dd className="mt-1 break-all text-sm text-[#e2e9dc]">{claims.email}</dd></div>
+                        <div><dt className="text-xs text-[#748278]">Verification</dt><dd className="mt-1 text-sm text-[#e2e9dc]">{claims.email_verified ? "Email verified" : "Awaiting confirmation"}</dd></div>
+                        <div><dt className="text-xs text-[#748278]">Currency</dt><dd className="mt-1 text-sm text-[#e2e9dc]">{wallet.currency || "BDT"}</dd></div>
+                    </dl>
+                </div>
+            </section>
         </main>
     );
 }

@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #06151b;
-  --foreground: #edf7f5;
+  color-scheme: dark;
+  --background: #0b1512;
+  --foreground: #f1f4e9;
+  --surface: #111e19;
+  --surface-raised: #172720;
+  --muted: #9aa99f;
+  --line: rgba(236, 244, 232, 0.12);
+  --accent: #c9f36a;
+  --accent-foreground: #17210d;
 }
 
 @theme inline {
@@ -18,10 +25,12 @@ html {
 
 body {
   background:
-    radial-gradient(circle at top, rgba(126, 245, 211, 0.12), transparent 30%),
-    linear-gradient(180deg, #06151b 0%, #081b22 100%);
+    radial-gradient(ellipse at 12% -10%, rgba(91, 167, 119, 0.16), transparent 35%),
+    linear-gradient(180deg, #0b1512 0%, #0d1915 54%, #0b1512 100%);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
+  font-feature-settings: "ss01" on;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -29,6 +38,43 @@ body {
 }
 
 ::selection {
-  background: rgba(126, 245, 211, 0.3);
-  color: white;
+  background: rgba(201, 243, 106, 0.36);
+  color: #f8ffe9;
+}
+
+button,
+a,
+input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise-in {
+  animation: rise-in 650ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
