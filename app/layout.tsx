@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TaskMint | Microtask rewards",
-  description: "TaskMint demo prototype for research, usability, and QA tasks with transparent economy and review flow.",
+  description: "Securely access your TaskMint account.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

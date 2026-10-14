@@ -11,19 +11,14 @@ export default async function DashboardPage() {
         redirect("/login");
     }
 
-    const {
-        data: { user },
-        error,
-    } = await supabase.auth.getUser();
+    const { data: verifiedClaims, error } = await supabase.auth.getClaims();
+    const claims = verifiedClaims?.claims;
 
-    if (error || !user) {
+    if (error || !claims?.sub) {
         redirect("/login");
     }
 
-    const displayName =
-        user.user_metadata?.full_name ||
-        user.email?.split("@")[0] ||
-        "TaskMint User";
+    const displayName = claims.user_metadata?.full_name || claims.email?.split("@")[0] || "TaskMint User";
 
     return (
         <main className="mx-auto min-h-screen max-w-6xl px-6 py-10">
@@ -43,28 +38,23 @@ export default async function DashboardPage() {
                 </form>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
-                {[
-                    ["Available balance", "৳3,240"],
-                    ["Approved rewards", "৳1,980"],
-                    ["Pending review", "৳540"],
-                    ["Withdrawals", "2"],
-                ].map(([label, value]) => (
-                    <div key={label} className="rounded-3xl border border-white/10 bg-[#091921] p-5">
-                        <p className="text-sm text-slate-400">{label}</p>
-                        <p className="mt-3 text-2xl font-black text-white">{value}</p>
+            <div className="mt-8 max-w-2xl border-t border-white/10 pt-6">
+                <h2 className="text-lg font-semibold text-white">Account details</h2>
+                <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <dt className="text-sm text-slate-400">Email</dt>
+                        <dd className="mt-1 break-all text-slate-100">{claims.email}</dd>
                     </div>
-                ))}
-            </div>
-
-            <div className="mt-8 rounded-3xl border border-white/10 bg-[#091921] p-6">
-                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Role privileges</p>
-                <ul className="mt-4 space-y-3 text-slate-300">
-                    <li>• Browse funded tasks with full eligibility and reward disclosure.</li>
-                    <li>• Submit proof for approved tasks and track review outcomes.</li>
-                    <li>• Manage wallet status, review payout requests, and follow withdrawals.</li>
-                    <li>• Access only the data assigned to the authenticated user and permitted role.</li>
-                </ul>
+                    <div>
+                        <dt className="text-sm text-slate-400">Email verification</dt>
+                        <dd className="mt-1 text-slate-100">
+                            {claims.email_verified ? "Verified" : "Awaiting confirmation"}
+                        </dd>
+                    </div>
+                </dl>
+                <p className="mt-6 text-sm leading-6 text-slate-400">
+                    Task listings, earnings, and payouts will appear here when those services are connected to live data.
+                </p>
             </div>
         </main>
     );

@@ -9,8 +9,8 @@ const oauthProviders = ["Google", "Apple"] as const;
 
 export default function LoginPage() {
     const router = useRouter();
-    const [email, setEmail] = useState("user@example.com");
-    const [password, setPassword] = useState("password123");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
@@ -35,6 +35,9 @@ export default function LoginPage() {
             const { data, error: signUpError } = await client.auth.signUp({
                 email,
                 password,
+                options: {
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fdashboard`,
+                },
             });
 
             if (signUpError) {
@@ -78,7 +81,7 @@ export default function LoginPage() {
         const { error: oauthError } = await client.auth.signInWithOAuth({
             provider: provider.toLowerCase() as "google" | "apple",
             options: {
-                redirectTo: `${window.location.origin}/dashboard`,
+                redirectTo: `${window.location.origin}/auth/callback?next=%2Fdashboard`,
             },
         });
 
