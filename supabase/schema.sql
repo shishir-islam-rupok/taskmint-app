@@ -221,6 +221,22 @@ alter table public.provider_webhook_events enable row level security;
 alter table public.audit_logs enable row level security;
 alter table public.risk_events enable row level security;
 
+create or replace function public.current_user_has_role(p_roles text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.user_roles ur
+    where ur.user_id = auth.uid() and ur.role = any(p_roles)
+  );
+$$;
+
+revoke all on function public.current_user_has_role(text[]) from public, anon;
+grant execute on function public.current_user_has_role(text[]) to authenticated;
+
 create policy "Users can view own profile" on public.profiles
   for select using (auth.uid() = id);
 
@@ -255,30 +271,19 @@ create policy "Users can update own profile" on public.profiles
   for update using (auth.uid() = id);
 
 create policy "Admin can access all profiles" on public.profiles
-  for all using (exists (
-    select 1 from public.user_roles ur
-    where ur.user_id = auth.uid() and ur.role = 'admin'
-  ));
+  for all using (public.current_user_has_role(array['admin']::text[]));
 
 create policy "Users can read their own roles" on public.user_roles
   for select using (user_id = auth.uid());
 
 create policy "Admins manage roles" on public.user_roles
-  for all using (exists (
-    select 1 from public.user_roles ur
-    where ur.user_id = auth.uid() and ur.role = 'admin'
-  ));
+  for all using (public.current_user_has_role(array['admin']::text[]));
 
 create policy "Authenticated users can read their own submissions" on public.task_submissions
   for select using (user_id = auth.uid());
 
 create policy "Admins and reviewers can access review queue" on public.task_submissions
-  for select using (
-    exists (
-      select 1 from public.user_roles ur
-      where ur.user_id = auth.uid() and ur.role in ('reviewer', 'admin')
-    )
-  );
+  for select using (public.current_user_has_role(array['reviewer', 'admin']::text[]));
 
 create policy "Authenticated users can insert their own submissions" on public.task_submissions
   for insert with check (user_id = auth.uid());
@@ -287,44 +292,19 @@ create policy "Users can read their own withdrawal requests" on public.withdrawa
   for select using (user_id = auth.uid());
 
 create policy "Finance and admins can see all withdrawal requests" on public.withdrawal_requests
-  for select using (
-    exists (
-      select 1 from public.user_roles ur
-      where ur.user_id = auth.uid() and ur.role in ('finance', 'admin')
-    )
-  );
+  for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
 
 create policy "Finance and admins can read all ledger tables" on public.ledger_accounts
-  for select using (
-    exists (
-      select 1 from public.user_roles ur
-      where ur.user_id = auth.uid() and ur.role in ('finance', 'admin')
-    )
-  );
+  for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
 
 create policy "Finance and admins can read all ledger transactions" on public.ledger_transactions
-  for select using (
-    exists (
-      select 1 from public.user_roles ur
-      where ur.user_id = auth.uid() and ur.role in ('finance', 'admin')
-    )
-  );
+  for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
 
 create policy "Finance and admins can read all ledger entries" on public.ledger_entries
-  for select using (
-    exists (
-      select 1 from public.user_roles ur
-      where ur.user_id = auth.uid() and ur.role in ('finance', 'admin')
-    )
-  );
+  for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
 
 create policy "Admins can manage advertisers" on public.advertiser_profiles
-  for all using (
-    exists (
-      select 1 from public.user_roles ur
-      where ur.user_id = auth.uid() and ur.role = 'admin'
-    )
-  );
+  for all using (public.current_user_has_role(array['admin']::text[]));
 
 create policy "Advertisers can view own campaigns" on public.campaigns
   for select using (
@@ -336,23 +316,13 @@ create policy "Advertisers can view own campaigns" on public.campaigns
   );
 
 create policy "Admins can manage all campaigns" on public.campaigns
-  for all using (
-    exists (
-      select 1 from public.user_roles ur
-      where ur.user_id = auth.uid() and ur.role = 'admin'
-    )
-  );
+  for all using (public.current_user_has_role(array['admin']::text[]));
 
 create policy "Users can read audit entries linked to themselves" on public.audit_logs
   for select using (actor_id = auth.uid());
 
 create policy "Admins can read all audit entries" on public.audit_logs
-  for select using (
-    exists (
-      select 1 from public.user_roles ur
-      where ur.user_id = auth.uid() and ur.role = 'admin'
-    )
-  );
+  for select using (public.current_user_has_role(array['admin']::text[]));
 
 create or replace function public.handle_new_user()
 returns trigger

@@ -34,9 +34,19 @@ create table if not exists public.campaign_sessions (
   created_at timestamptz not null default now()
 );
 
-alter table public.task_submissions
-  add constraint task_submissions_session_id_fkey
-  foreign key (session_id) references public.campaign_sessions(id) on delete set null;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'task_submissions_session_id_fkey'
+      and conrelid = 'public.task_submissions'::regclass
+  ) then
+    alter table public.task_submissions
+      add constraint task_submissions_session_id_fkey
+      foreign key (session_id) references public.campaign_sessions(id) on delete set null;
+  end if;
+end;
+$$;
 
 create unique index if not exists advertiser_profiles_owner_user_id_key
   on public.advertiser_profiles(owner_user_id);
@@ -60,6 +70,62 @@ drop policy if exists "Advertisers can update draft campaigns" on public.campaig
 drop policy if exists "Advertisers can read campaign funding" on public.campaign_funding;
 drop policy if exists "Admins can manage campaign funding" on public.campaign_funding;
 drop policy if exists "Authenticated users can read funded campaigns" on public.campaigns;
+drop policy if exists "Admin can access all profiles" on public.profiles;
+drop policy if exists "Admins manage roles" on public.user_roles;
+drop policy if exists "Admins and reviewers can access review queue" on public.task_submissions;
+drop policy if exists "Finance and admins can see all withdrawal requests" on public.withdrawal_requests;
+drop policy if exists "Finance and admins can read all ledger tables" on public.ledger_accounts;
+drop policy if exists "Finance and admins can read all ledger transactions" on public.ledger_transactions;
+drop policy if exists "Finance and admins can read all ledger entries" on public.ledger_entries;
+drop policy if exists "Admins can manage advertisers" on public.advertiser_profiles;
+drop policy if exists "Admins can manage all campaigns" on public.campaigns;
+drop policy if exists "Admins can read all audit entries" on public.audit_logs;
+
+create or replace function public.current_user_has_role(p_roles text[])
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.user_roles ur
+    where ur.user_id = auth.uid() and ur.role = any(p_roles)
+  );
+$$;
+
+revoke all on function public.current_user_has_role(text[]) from public, anon;
+grant execute on function public.current_user_has_role(text[]) to authenticated;
+
+create policy "Admin can access all profiles" on public.profiles
+  for all using (public.current_user_has_role(array['admin']::text[]));
+
+create policy "Admins manage roles" on public.user_roles
+  for all using (public.current_user_has_role(array['admin']::text[]));
+
+create policy "Admins and reviewers can access review queue" on public.task_submissions
+  for select using (public.current_user_has_role(array['reviewer', 'admin']::text[]));
+
+create policy "Finance and admins can see all withdrawal requests" on public.withdrawal_requests
+  for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
+
+create policy "Finance and admins can read all ledger tables" on public.ledger_accounts
+  for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
+
+create policy "Finance and admins can read all ledger transactions" on public.ledger_transactions
+  for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
+
+create policy "Finance and admins can read all ledger entries" on public.ledger_entries
+  for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
+
+create policy "Admins can manage advertisers" on public.advertiser_profiles
+  for all using (public.current_user_has_role(array['admin']::text[]));
+
+create policy "Admins can manage all campaigns" on public.campaigns
+  for all using (public.current_user_has_role(array['admin']::text[]));
+
+create policy "Admins can read all audit entries" on public.audit_logs
+  for select using (public.current_user_has_role(array['admin']::text[]));
 
 -- Wallet credits are granted only from reviewed, funded campaign submissions.
 drop policy if exists "Users can insert own wallet" on public.wallets;
@@ -163,14 +229,8 @@ create policy "Advertisers can read campaign submissions" on public.task_submiss
 
 create policy "Admins can manage campaign funding" on public.campaign_funding
   for all to authenticated
-  using (exists (
-    select 1 from public.user_roles ur
-    where ur.user_id = auth.uid() and ur.role = 'admin'
-  ))
-  with check (exists (
-    select 1 from public.user_roles ur
-    where ur.user_id = auth.uid() and ur.role = 'admin'
-  ));
+  using (public.current_user_has_role(array['admin']::text[]))
+  with check (public.current_user_has_role(array['admin']::text[]));
 
 create policy "Users can read own campaign sessions" on public.campaign_sessions
   for select to authenticated using (user_id = auth.uid());
@@ -251,10 +311,7 @@ declare
   v_funded bigint;
   v_advertiser_status text;
 begin
-  if v_actor_id is null or not exists (
-    select 1 from public.user_roles ur
-    where ur.user_id = v_actor_id and ur.role = 'admin'
-  ) then
+  if v_actor_id is null or not public.current_user_has_role(array['admin']::text[]) then
     raise exception 'Administrator access is required.';
   end if;
 
@@ -519,10 +576,7 @@ begin
     where ap.id = v_campaign.advertiser_id and ap.owner_user_id = v_actor_id
   ) into v_is_owner;
 
-  select exists (
-    select 1 from public.user_roles ur
-    where ur.user_id = v_actor_id and ur.role in ('reviewer', 'admin')
-  ) into v_is_admin;
+  v_is_admin := public.current_user_has_role(array['reviewer', 'admin']::text[]);
 
   if not v_is_owner and not v_is_admin then
     raise exception 'You are not allowed to review this campaign.';
