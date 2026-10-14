@@ -21,10 +21,10 @@ export default function Home() {
                         Sign in or create account
                     </Link>
                     <Link
-                        href="/adsincome"
+                        href="/task"
                         className="rounded-full border border-white/10 bg-white/3 px-6 py-3 text-sm font-bold text-white transition hover:border-[#7ef5d3]/40 hover:bg-[#7ef5d3]/10"
                     >
-                        Open PTC dashboard
+                        Open task board
                     </Link>
                 </div>
             </section>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -38,9 +39,24 @@ export default async function DashboardPage() {
                 </form>
             </div>
 
-            <div className="mt-8 max-w-2xl border-t border-white/10 pt-6">
-                <h2 className="text-lg font-semibold text-white">Account details</h2>
-                <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 max-w-3xl rounded-3xl border border-white/10 bg-[#091921] p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h2 className="text-lg font-semibold text-white">Account details</h2>
+                        <p className="mt-2 text-sm text-slate-400">
+                            Your session is active. Continue to the task board to start earning.
+                        </p>
+                    </div>
+
+                    <Link
+                        href="/task"
+                        className="inline-flex rounded-full bg-[#7ef5d3] px-5 py-2.5 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc]"
+                    >
+                        Open task board
+                    </Link>
+                </div>
+
+                <dl className="mt-6 grid gap-4 sm:grid-cols-2">
                     <div>
                         <dt className="text-sm text-slate-400">Email</dt>
                         <dd className="mt-1 break-all text-slate-100">{claims.email}</dd>
@@ -52,9 +68,6 @@ export default async function DashboardPage() {
                         </dd>
                     </div>
                 </dl>
-                <p className="mt-6 text-sm leading-6 text-slate-400">
-                    Task listings, earnings, and payouts will appear here when those services are connected to live data.
-                </p>
             </div>
         </main>
     );

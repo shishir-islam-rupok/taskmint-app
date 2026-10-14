@@ -207,11 +207,10 @@ export default function AdsIncomePage() {
 
                 {notification ? (
                     <div
-                        className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${
-                            notification.type === "success"
+                        className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${notification.type === "success"
                                 ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
                                 : "border-red-500/40 bg-red-500/10 text-red-200"
-                        }`}
+                            }`}
                     >
                         {notification.message}
                     </div>
@@ -286,11 +285,10 @@ export default function AdsIncomePage() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openTask(task)}
-                                                    className={`rounded-full px-4 py-2.5 text-sm font-bold transition ${
-                                                        isDone
+                                                    className={`rounded-full px-4 py-2.5 text-sm font-bold transition ${isDone
                                                             ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
                                                             : "bg-[#7ef5d3] text-[#06151b] hover:bg-[#9ef3dc]"
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {isDone ? "Completed" : "View ad"}
                                                 </button>
