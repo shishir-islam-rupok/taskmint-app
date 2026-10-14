@@ -52,6 +52,8 @@ export default async function AdsIncomePage({
         updated_at: null,
     };
     const submissions = new Map((submissionResult.data ?? []).map((submission) => [submission.campaign_id, submission]));
+    const campaignErrorMessage = campaignResult.error?.message || "";
+    const marketplaceMigrationMissing = /watch_seconds|destination_url/i.test(campaignErrorMessage);
 
     let watchSession: { id: string; campaign_id: string; expires_at: string; status: string } | null = null;
     let watchCampaign: {
@@ -116,7 +118,7 @@ export default async function AdsIncomePage({
 
             {params.submitted ? <div role="status" className="mt-4 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Submission received. The reward is pending provider review.</div> : null}
             {params.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}
-            {campaignResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm leading-6 text-[#f0b9b1]">Campaign tables are missing. In Supabase Dashboard → SQL Editor, run <code>supabase/schema.sql</code> once if the base schema has not been installed, then run <code>supabase/migrations/20261014_campaign_marketplace.sql</code>. Reload after both complete. Details: {campaignResult.error.message}</div> : null}
+            {campaignResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm leading-6 text-[#f0b9b1]">{marketplaceMigrationMissing ? <>Base campaign tables exist, but the marketplace migration is missing. Run only <code>supabase/migrations/20261014_campaign_marketplace.sql</code> in the Supabase SQL Editor, then reload.</> : <>Campaign tables are missing. In the Supabase SQL Editor, run <code>supabase/schema.sql</code> once if the base schema has not been installed, then run <code>supabase/migrations/20261014_campaign_marketplace.sql</code>. Reload after both complete.</>} Details: {campaignResult.error.message}</div> : null}
             {submissionResult.error && !campaignResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">Could not load your submission history: {submissionResult.error.message}</div> : null}
             {watchError ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">Could not load the watch session: {watchError}</div> : null}
 
