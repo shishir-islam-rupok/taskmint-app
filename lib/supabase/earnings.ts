@@ -125,6 +125,14 @@ export async function getUserDashboardData() {
     }
 
     let subscriptions: Array<{ id: string; plan_key: string; status: string; started_at: string; ends_at: string | null; plan: SubscriptionPlan | null }> = [];
+    type SubscriptionRow = {
+        id: string;
+        plan_key: string;
+        status: string;
+        started_at: string;
+        ends_at: string | null;
+        plan: SubscriptionPlan | null;
+    };
     try {
         const { data, error } = await supabase
             .from("user_subscriptions")
@@ -133,7 +141,7 @@ export async function getUserDashboardData() {
             .order("created_at", { ascending: false });
 
         if (!error && data) {
-            subscriptions = (data as Array<any>).map((row) => ({
+            subscriptions = (data as SubscriptionRow[]).map((row) => ({
                 id: row.id,
                 plan_key: row.plan_key,
                 status: row.status,
@@ -172,89 +180,6 @@ export async function getUserDashboardData() {
         plans,
         subscriptions,
         transactions,
-    };
-}
-
-export async function creditTaskReward(taskId: string, title: string, rewardMinor: number) {
-    const supabase = await createServerSupabaseClient();
-
-    if (!supabase) {
-        return { success: false, message: "Supabase is not configured." };
-    }
-
-    const {
-        data: { user },
-        error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-        return { success: false, message: "User session is not valid." };
-    }
-
-    let wallet = null as any;
-    const { data: existingWallet, error: walletError } = await supabase
-        .from("wallets")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-    if (!walletError && existingWallet) {
-        wallet = existingWallet;
-    }
-
-    if (!wallet) {
-        const { data: createdWallet, error: createdWalletError } = await supabase
-            .from("wallets")
-            .insert({
-                user_id: user.id,
-                balance_minor: 0,
-                pending_minor: 0,
-                approved_minor: 0,
-                currency: "BDT",
-            })
-            .select()
-            .single();
-
-        if (createdWalletError || !createdWallet) {
-            return { success: false, message: "Wallet could not be created." };
-        }
-
-        wallet = createdWallet;
-    }
-
-    const totalBalance = Number(wallet.balance_minor || 0) + Number(rewardMinor || 0);
-    const totalApproved = Number(wallet.approved_minor || 0) + Number(rewardMinor || 0);
-
-    const { error: transactionError } = await supabase.from("wallet_transactions").insert({
-        user_id: user.id,
-        task_id: taskId,
-        title,
-        source_type: "task_reward",
-        reward_minor: rewardMinor,
-        status: "approved",
-    });
-
-    if (transactionError) {
-        return { success: false, message: transactionError.message };
-    }
-
-    const { error: walletUpdateError } = await supabase
-        .from("wallets")
-        .update({
-            balance_minor: totalBalance,
-            approved_minor: totalApproved,
-            updated_at: new Date().toISOString(),
-        })
-        .eq("id", wallet.id);
-
-    if (walletUpdateError) {
-        return { success: false, message: walletUpdateError.message };
-    }
-
-    return {
-        success: true,
-        message: `BDT ${rewardMinor} was credited to your wallet.`,
-        balance_minor: totalBalance,
     };
 }
 

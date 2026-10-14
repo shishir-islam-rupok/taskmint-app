@@ -20,6 +20,9 @@ export default async function DashboardPage() {
         redirect("/login");
     }
 
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", claims.sub);
+    const isAdmin = (roles || []).some((role) => role.role === "admin");
+
     const displayName = claims.user_metadata?.full_name || claims.email?.split("@")[0] || "TaskMint User";
     const dashboard = await getUserDashboardData();
     const wallet = dashboard.wallet ?? {
@@ -40,14 +43,12 @@ export default async function DashboardPage() {
                     <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Welcome back, {displayName}</h1>
                 </div>
 
-                <form action={logoutAction}>
-                    <button
-                        type="submit"
-                        className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/[0.04] hover:text-white"
-                    >
-                        Sign out
-                    </button>
-                </form>
+                <div className="flex items-center gap-2">
+                    {isAdmin ? <Link href="/admin/campaigns" className="rounded-lg border border-[#c9f36a]/25 px-3 py-2 text-sm font-semibold text-[#d6f5a4] hover:bg-[#c9f36a]/10">Campaign ops</Link> : null}
+                    <form action={logoutAction}>
+                        <button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/[0.04] hover:text-white">Sign out</button>
+                    </form>
+                </div>
             </div>
 
             <section className="animate-rise-in grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -70,10 +71,13 @@ export default async function DashboardPage() {
                     <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#c9f36a]">Next step</p>
-                            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">Find your next activity.</h2>
-                            <p className="mt-2 max-w-md text-sm leading-6 text-[#9aa99f]">Browse available tasks, review the reward and time, then keep an eye on progress in your wallet.</p>
+                            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-white">Choose your workspace.</h2>
+                            <p className="mt-2 max-w-md text-sm leading-6 text-[#9aa99f]">Earners can browse funded campaigns. Providers can post tasks and review submissions from their own dashboard.</p>
                         </div>
-                        <Link href="/task" className="inline-flex shrink-0 items-center justify-center gap-3 rounded-lg bg-[#c9f36a] px-5 py-3 text-sm font-bold text-[#17210d] transition hover:-translate-y-0.5 hover:bg-[#dcff86]">Browse tasks <span aria-hidden="true">↗</span></Link>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                            <Link href="/adsincome" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#c9f36a] px-4 py-3 text-sm font-bold text-[#17210d] transition hover:-translate-y-0.5 hover:bg-[#dcff86]">Earn tasks <span aria-hidden="true">↗</span></Link>
+                            <Link href="/advertiser" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.04]">Post a task <span aria-hidden="true">↗</span></Link>
+                        </div>
                     </div>
                 </div>
                 <div className="border border-white/[0.1] bg-[#111e19] p-6 sm:p-8">

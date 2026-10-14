@@ -1,450 +1,166 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { redirect } from "next/navigation";
+import { logoutAction } from "@/lib/auth/actions";
+import { getUserDashboardData } from "@/lib/supabase/earnings";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { CampaignTimer } from "./campaign-timer";
+import { startCampaignSessionAction } from "./actions";
 
-type AdTask = {
-    id: string;
-    title: string;
-    brand: string;
-    reward: number;
-    duration: number;
-    category: string;
-    level: "Featured" | "Hot" | "New";
-    description: string;
-    badge: string;
-};
+export const dynamic = "force-dynamic";
 
-type Notification = {
-    type: "success" | "error";
-    message: string;
-};
+function safeExternalUrl(value: string | null) {
+    if (!value) return null;
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+    } catch {
+        return null;
+    }
+}
 
-const tasks: AdTask[] = [
-    {
-        id: "task-1",
-        title: "Daily Brand View",
-        brand: "Bangladesh Telecom",
-        reward: 18,
-        duration: 20,
-        category: "Telecom",
-        level: "Featured",
-        description: "Open the campaign page and stay on the view for the full 20 seconds to confirm completion.",
-        badge: "High conversion",
-    },
-    {
-        id: "task-2",
-        title: "Marketplace Discovery",
-        brand: "ShopHub BD",
-        reward: 25,
-        duration: 25,
-        category: "E-commerce",
-        level: "Hot",
-        description: "Browse the featured product carousel and validate the banner exposure before the timer finishes.",
-        badge: "Quick payout",
-    },
-    {
-        id: "task-3",
-        title: "Finance Offer Click",
-        brand: "CashFlow Plus",
-        reward: 30,
-        duration: 30,
-        category: "Finance",
-        level: "Featured",
-        description: "Complete the full viewing session to unlock a verified payout for this premium ad campaign.",
-        badge: "Premium reward",
-    },
-    {
-        id: "task-4",
-        title: "App Install Offer",
-        brand: "KlikPay",
-        reward: 22,
-        duration: 20,
-        category: "App",
-        level: "New",
-        description: "Watch the branded installation flow and keep the ad open until the confirmation prompt appears.",
-        badge: "Mobile-ready",
-    },
-    {
-        id: "task-5",
-        title: "Local Business Promo",
-        brand: "Dhaka Deals",
-        reward: 16,
-        duration: 18,
-        category: "Local",
-        level: "Hot",
-        description: "A short local campaign with a clean verification window and quick reward settlement.",
-        badge: "Fast track",
-    },
-];
+export default async function AdsIncomePage({
+    searchParams,
+}: {
+    searchParams?: Promise<{ watch?: string; submitted?: string; error?: string }>;
+}) {
+    const params = searchParams ? await searchParams : {};
+    const supabase = await createServerSupabaseClient();
+    if (!supabase) redirect("/login");
 
-export default function AdsIncomePage() {
-    const [selectedTask, setSelectedTask] = useState<AdTask>(tasks[0]);
-    const [countdown, setCountdown] = useState<number>(tasks[0].duration);
-    const [isViewing, setIsViewing] = useState(false);
-    const [completedTasks, setCompletedTasks] = useState<string[]>([]);
-    const [wallet, setWallet] = useState({
-        balance: 2840,
-        pending: 560,
-        approved: 1960,
-    });
-    const [withdrawal, setWithdrawal] = useState("500");
-    const [notification, setNotification] = useState<Notification | null>(null);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) redirect("/login");
 
-    useEffect(() => {
-        if (!isViewing || !selectedTask) {
-            return;
+    const [dashboard, campaignResult, submissionResult] = await Promise.all([
+        getUserDashboardData(),
+        supabase
+            .from("campaigns")
+            .select("id,title,category,description,instructions,reward_minor,currency,slot_count,watch_seconds,destination_url,created_at")
+            .eq("state", "active")
+            .eq("review_status", "approved")
+            .order("created_at", { ascending: false }),
+        supabase
+            .from("task_submissions")
+            .select("campaign_id,status,rejection_reason,submitted_at")
+            .eq("user_id", user.id),
+    ]);
+
+    const wallet = dashboard.wallet ?? {
+        balance_minor: 0,
+        pending_minor: 0,
+        approved_minor: 0,
+        currency: "BDT",
+        updated_at: null,
+    };
+    const submissions = new Map((submissionResult.data ?? []).map((submission) => [submission.campaign_id, submission]));
+
+    let watchSession: { id: string; campaign_id: string; expires_at: string; status: string } | null = null;
+    let watchCampaign: {
+        title: string;
+        instructions: string;
+        destination_url: string | null;
+    } | null = null;
+    let watchError: string | null = null;
+
+    if (params.watch && !campaignResult.error) {
+        const { data, error } = await supabase
+            .from("campaign_sessions")
+            .select("id,campaign_id,expires_at,status")
+            .eq("id", params.watch)
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+        if (error) {
+            watchError = error.message;
+        } else if (data) {
+            watchSession = data;
+            const { data: campaign } = await supabase
+                .from("campaigns")
+                .select("title,instructions,destination_url")
+                .eq("id", data.campaign_id)
+                .maybeSingle();
+            watchCampaign = campaign;
         }
-
-        const timer = window.setInterval(() => {
-            setCountdown((current) => {
-                if (current <= 1) {
-                    window.clearInterval(timer);
-                    completeTask(selectedTask);
-                    return 0;
-                }
-
-                return current - 1;
-            });
-        }, 1000);
-
-        return () => window.clearInterval(timer);
-    }, [isViewing, selectedTask]);
-
-    const totalEarningsToday = tasks
-        .filter((task) => completedTasks.includes(task.id))
-        .reduce((sum, task) => sum + task.reward, 0);
-
-    const payoutThreshold = 500;
-
-    function openTask(task: AdTask) {
-        setSelectedTask(task);
-        setCountdown(task.duration);
-        setIsViewing(true);
-        setNotification(null);
     }
 
-    function completeTask(task: AdTask) {
-        if (completedTasks.includes(task.id)) {
-            setIsViewing(false);
-            return;
-        }
-
-        setCompletedTasks((current) => [...current, task.id]);
-        setWallet((current) => ({
-            balance: current.balance + task.reward,
-            pending: current.pending + task.reward,
-            approved: current.approved + task.reward,
-        }));
-        setIsViewing(false);
-        setNotification({
-            type: "success",
-            message: `Verified! BDT ${task.reward} has been credited to your wallet.`,
-        });
-    }
-
-    function handleWithdrawalRequest(event: React.FormEvent) {
-        event.preventDefault();
-
-        const amount = Number(withdrawal);
-
-        if (!amount || amount < payoutThreshold) {
-            setNotification({
-                type: "error",
-                message: `Minimum payout threshold is BDT ${payoutThreshold}.`,
-            });
-            return;
-        }
-
-        if (wallet.balance < amount) {
-            setNotification({
-                type: "error",
-                message: "Your available balance is lower than the withdrawal request.",
-            });
-            return;
-        }
-
-        setWallet((current) => ({
-            ...current,
-            balance: current.balance - amount,
-            pending: current.pending - amount,
-        }));
-
-        setNotification({
-            type: "success",
-            message: `Payout request submitted for BDT ${amount}. Review will be processed within 24 hours.`,
-        });
-    }
+    const metrics = [
+        { label: "Wallet balance", value: wallet.balance_minor },
+        { label: "Pending review", value: wallet.pending_minor },
+        { label: "Approved rewards", value: wallet.approved_minor },
+    ];
 
     return (
-        <main className="min-h-screen px-4 py-8 text-slate-100 sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-7xl">
-                <header className="mb-8 flex flex-col gap-4 rounded-[28px] border border-white/10 bg-[#071d23]/80 p-5 shadow-[0_20px_80px_rgba(7,25,30,0.7)] backdrop-blur sm:p-6 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#9ef8dc]">
-                            TaskMint earnings
-                        </p>
-                        <h1 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                            Paid-to-Click dashboard
-                        </h1>
-                    </div>
+        <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 text-[#f1f4e9] sm:px-8 sm:py-10">
+            <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
+                <Link href="/" className="flex items-center gap-2.5 text-base font-extrabold tracking-tight text-white">
+                    <span className="grid size-8 place-items-center rounded-lg bg-[#c9f36a] text-xs font-black text-[#17210d]">T</span>taskmint
+                </Link>
+                <nav className="flex items-center gap-2 sm:gap-3">
+                    <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] transition hover:bg-white/5 hover:text-white">Dashboard</Link>
+                    <Link href="/advertiser" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] transition hover:bg-white/5 hover:text-white">Post a task</Link>
+                    <form action={logoutAction}><button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/4 hover:text-white">Sign out</button></form>
+                </nav>
+            </header>
 
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href="/dashboard"
-                            className="rounded-full border border-white/10 bg-white/3 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-[#7ef5d3]/40 hover:bg-[#7ef5d3]/10"
-                        >
-                            Dashboard
-                        </Link>
-                        <Link
-                            href="/login"
-                            className="rounded-full bg-[#7ef5d3] px-5 py-2.5 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc]"
-                        >
-                            Sign out
-                        </Link>
-                    </div>
-                </header>
+            <section className="animate-rise-in flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
+                <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">Sponsored tasks</p>
+                    <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Watch, complete, submit.</h1>
+                    <p className="mt-3 max-w-2xl text-sm leading-6 text-[#9aa99f]">Explore sponsor-funded content tasks. Each session is timed on the server; rewards are held pending until the campaign provider reviews your submission.</p>
+                </div>
+                <Link href="/advertiser" className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.04]">Post a campaign <span aria-hidden="true">↗</span></Link>
+            </section>
 
-                {notification ? (
-                    <div
-                        className={`mb-6 rounded-2xl border px-4 py-3 text-sm ${notification.type === "success"
-                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
-                                : "border-red-500/40 bg-red-500/10 text-red-200"
-                            }`}
-                    >
-                        {notification.message}
-                    </div>
-                ) : null}
-
-                <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    {[
-                        { label: "Available balance", value: `৳${wallet.balance.toLocaleString("en-BD")}`, accent: "text-[#9ef8dc]" },
-                        { label: "Pending rewards", value: `৳${wallet.pending.toLocaleString("en-BD")}`, accent: "text-amber-300" },
-                        { label: "Approved earnings", value: `৳${wallet.approved.toLocaleString("en-BD")}`, accent: "text-cyan-300" },
-                        { label: "Today earned", value: `৳${totalEarningsToday.toLocaleString("en-BD")}`, accent: "text-violet-300" },
-                    ].map((item) => (
-                        <div key={item.label} className="rounded-3xl border border-white/10 bg-[#091921] p-5 shadow-lg shadow-[#07151a]/50">
-                            <p className="text-sm text-slate-400">{item.label}</p>
-                            <p className={`mt-4 text-2xl font-black ${item.accent}`}>{item.value}</p>
-                        </div>
-                    ))}
-                </section>
-
-                <section className="grid gap-6 xl:grid-cols-[1.5fr_0.95fr]">
-                    <div className="rounded-[28px] border border-white/10 bg-[#091921] p-5 shadow-[0_20px_60px_rgba(7,25,30,0.6)] sm:p-6">
-                        <div className="mb-5 flex items-center justify-between gap-3">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-                                    Available campaigns
-                                </p>
-                                <h2 className="mt-2 text-2xl font-black text-white">Earn by viewing ads</h2>
-                            </div>
-                            <span className="rounded-full border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-3 py-1 text-xs font-semibold text-[#9ef8dc]">
-                                {tasks.length} active offers
-                            </span>
-                        </div>
-
-                        <div className="space-y-4">
-                            {tasks.map((task) => {
-                                const isDone = completedTasks.includes(task.id);
-
-                                return (
-                                    <article
-                                        key={task.id}
-                                        className="rounded-3xl border border-white/10 bg-[#071c24] p-4 transition hover:border-[#7ef5d3]/40 hover:bg-[#0b242b]"
-                                    >
-                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="rounded-full border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ef8dc]">
-                                                        {task.level}
-                                                    </span>
-                                                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-slate-300">
-                                                        {task.category}
-                                                    </span>
-                                                </div>
-
-                                                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                                                    <div>
-                                                        <h3 className="text-xl font-bold text-white">{task.title}</h3>
-                                                        <p className="mt-1 text-sm text-slate-400">{task.brand}</p>
-                                                    </div>
-                                                    <div className="rounded-2xl border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-3 py-2 text-right">
-                                                        <p className="text-[10px] uppercase tracking-[0.2em] text-[#9ef8dc]">Reward</p>
-                                                        <p className="mt-1 text-xl font-black text-[#9ef8dc]">৳{task.reward}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-3 lg:flex-col lg:items-end">
-                                                <div className="text-left lg:text-right">
-                                                    <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Time</p>
-                                                    <p className="mt-1 text-lg font-bold text-white">{task.duration}s</p>
-                                                </div>
-
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openTask(task)}
-                                                    className={`rounded-full px-4 py-2.5 text-sm font-bold transition ${isDone
-                                                            ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-                                                            : "bg-[#7ef5d3] text-[#06151b] hover:bg-[#9ef3dc]"
-                                                        }`}
-                                                >
-                                                    {isDone ? "Completed" : "View ad"}
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <p className="mt-3 text-sm leading-6 text-slate-300">{task.description}</p>
-                                    </article>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <aside className="rounded-[28px] border border-white/10 bg-[#091921] p-5 shadow-[0_20px_60px_rgba(7,25,30,0.6)] sm:p-6">
-                        <div className="mb-5 flex items-center justify-between gap-3">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-                                    Active task
-                                </p>
-                                <h2 className="mt-2 text-2xl font-black text-white">Ad viewer</h2>
-                            </div>
-                            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-200">
-                                {selectedTask.badge}
-                            </span>
-                        </div>
-
-                        <div className="overflow-hidden rounded-[24px] border border-white/10 bg-[#071c24]">
-                            <div className="flex items-center justify-between border-b border-white/10 bg-[#07151a] px-4 py-3">
-                                <span className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                                    {selectedTask.brand}
-                                </span>
-                                <span className="rounded-full border border-[#7ef5d3]/30 bg-[#7ef5d3]/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#9ef8dc]">
-                                    {selectedTask.category}
-                                </span>
-                            </div>
-
-                            <div className="relative h-56 border-b border-white/10 bg-[radial-gradient(circle_at_top,_rgba(126,245,211,0.28),_transparent_34%),linear-gradient(135deg,#0e1d26,#081d22,#0a1a20)] p-4">
-                                <div className="absolute inset-x-4 top-4 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                                    <span>{selectedTask.title}</span>
-                                    <span>Sponsored</span>
-                                </div>
-
-                                <div className="absolute inset-x-6 bottom-5 rounded-2xl border border-[#7ef5d3]/20 bg-[#07151a]/80 p-4 backdrop-blur-sm">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div>
-                                            <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Campaign</p>
-                                            <p className="mt-1 text-lg font-black text-white">{selectedTask.brand}</p>
-                                        </div>
-                                        <div className="rounded-full bg-[#7ef5d3] px-3 py-1.5 text-xs font-black text-[#06151b]">
-                                            Reward ৳{selectedTask.reward}
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
-                                        <div
-                                            className="h-full rounded-full bg-[#7ef5d3] transition-all duration-1000"
-                                            style={{ width: `${((selectedTask.duration - countdown) / selectedTask.duration) * 100}%` }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-5 rounded-3xl border border-white/10 bg-[#061a20] p-4">
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Timer</p>
-                                    <p className="mt-2 text-3xl font-black text-white">{countdown}s</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsViewing(!isViewing)}
-                                    className="rounded-full bg-[#7ef5d3] px-4 py-2 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc]"
-                                >
-                                    {isViewing ? "Pause" : "Start task"}
-                                </button>
-                            </div>
-
-                            <p className="mt-4 text-sm leading-6 text-slate-300">
-                                {selectedTask.description}
-                            </p>
-                        </div>
-                    </aside>
-                </section>
-
-                <section className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                    <div className="rounded-[28px] border border-white/10 bg-[#091921] p-5 sm:p-6">
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-                            Wallet & payout
-                        </p>
-                        <h2 className="mt-2 text-2xl font-black text-white">Withdrawal request</h2>
-
-                        <form onSubmit={handleWithdrawalRequest} className="mt-5 space-y-4">
-                            <div>
-                                <label htmlFor="withdrawalAmount" className="mb-2 block text-sm text-slate-300">
-                                    Amount in BDT
-                                </label>
-                                <input
-                                    id="withdrawalAmount"
-                                    type="number"
-                                    min={payoutThreshold}
-                                    step="50"
-                                    value={withdrawal}
-                                    onChange={(event) => setWithdrawal(event.target.value)}
-                                    className="w-full rounded-2xl border border-white/10 bg-[#061a20] px-4 py-3 text-white outline-none transition focus:border-[#7ef5d3]/60"
-                                />
-                            </div>
-
-                            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-[#061a20] px-4 py-3 text-sm text-slate-300">
-                                <span>Min payout</span>
-                                <span className="font-bold text-[#9ef8dc]">BDT {payoutThreshold}</span>
-                            </div>
-
-                            <button
-                                type="submit"
-                                className="w-full rounded-full bg-[#7ef5d3] px-4 py-3 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc]"
-                            >
-                                Submit payout request
-                            </button>
-                        </form>
-                    </div>
-
-                    <div className="rounded-[28px] border border-white/10 bg-[#091921] p-5 sm:p-6">
-                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400">
-                            Summary
-                        </p>
-                        <h2 className="mt-2 text-2xl font-black text-white">Earning progress</h2>
-
-                        <div className="mt-5 space-y-4">
-                            <div>
-                                <div className="mb-2 flex items-center justify-between text-sm text-slate-300">
-                                    <span>Approved rate</span>
-                                    <span className="font-bold text-[#9ef8dc]">82%</span>
-                                </div>
-                                <div className="h-2 overflow-hidden rounded-full bg-white/8">
-                                    <div className="h-full w-[82%] rounded-full bg-[#7ef5d3]" />
-                                </div>
-                            </div>
-
-                            <div className="rounded-2xl border border-white/10 bg-[#061a20] p-4 text-sm text-slate-300">
-                                <div className="flex items-center justify-between">
-                                    <span>Available</span>
-                                    <span className="font-bold text-white">৳{wallet.balance.toLocaleString("en-BD")}</span>
-                                </div>
-                                <div className="mt-3 flex items-center justify-between">
-                                    <span>Pending</span>
-                                    <span className="font-bold text-amber-300">৳{wallet.pending.toLocaleString("en-BD")}</span>
-                                </div>
-                                <div className="mt-3 flex items-center justify-between">
-                                    <span>Approved</span>
-                                    <span className="font-bold text-cyan-300">৳{wallet.approved.toLocaleString("en-BD")}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
+            <div className="mt-6 border border-[#c9f36a]/20 bg-[#c9f36a]/[0.06] px-4 py-3 text-xs leading-5 text-[#cbd8bf]">
+                These are TaskMint-sponsored activities, not paid impressions or clicks on AdSense/Adsterra units. Follow each campaign brief and submit a note for review.
             </div>
+
+            {params.submitted ? <div role="status" className="mt-4 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Submission received. The reward is pending provider review.</div> : null}
+            {params.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}
+            {campaignResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm leading-6 text-[#f0b9b1]">Campaign storage is not ready yet. Apply <code>supabase/migrations/20261014_campaign_marketplace.sql</code> in your Supabase project, then reload this page. Details: {campaignResult.error.message}</div> : null}
+            {submissionResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">Could not load your submission history: {submissionResult.error.message}</div> : null}
+            {watchError ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">Could not load the watch session: {watchError}</div> : null}
+
+            <section className="mt-5 grid gap-3 sm:grid-cols-3">
+                {metrics.map((metric, index) => <article key={metric.label} className={`border px-5 py-4 ${index === 0 ? "border-[#c9f36a]/25 bg-[#c9f36a]/[0.055]" : "border-white/10 bg-[#111e19]"}`}><p className="text-xs text-[#9aa99f]">{metric.label}</p><p className={`mt-2 text-2xl font-semibold ${index === 0 ? "text-[#d9f7a0]" : "text-white"}`}>৳{Number(metric.value || 0).toLocaleString("en-BD")}</p></article>)}
+            </section>
+
+            {watchSession && watchCampaign && watchSession.status === "started" ? (
+                <div className="mt-6"><CampaignTimer sessionId={watchSession.id} expiresAt={watchSession.expires_at} title={watchCampaign.title} instructions={watchCampaign.instructions} destinationUrl={safeExternalUrl(watchCampaign.destination_url)} /></div>
+            ) : null}
+            {watchSession && watchSession.status !== "started" ? <div className="mt-6 border border-white/10 bg-[#111e19] px-4 py-3 text-sm text-[#b8c5b9]">This session has already been submitted or closed.</div> : null}
+
+            <section className="mt-8">
+                <div className="mb-4 flex items-end justify-between gap-4 border-b border-white/10 pb-4">
+                    <div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#839187]">Verified and funded</p><h2 className="mt-1.5 text-xl font-semibold text-white">Available campaigns</h2></div>
+                    <span className="text-xs text-[#839187]">{campaignResult.data?.length ?? 0} live</span>
+                </div>
+                {campaignResult.data?.length ? (
+                    <div className="divide-y divide-white/10 border-y border-white/10">
+                        {campaignResult.data.map((campaign) => {
+                            const submission = submissions.get(campaign.id);
+                            return (
+                                <article key={campaign.id} className="py-5 sm:px-3">
+                                    <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+                                        <div className="min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2"><span className="rounded-sm bg-[#c9f36a]/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#d6f5a4]">{campaign.category}</span><span className="text-xs text-[#839187]">{campaign.watch_seconds}s minimum</span></div>
+                                            <h3 className="mt-2 text-lg font-semibold text-white">{campaign.title}</h3>
+                                            <p className="mt-1 max-w-3xl text-sm leading-5 text-[#9aa99f]">{campaign.description}</p>
+                                            <p className="mt-2 text-xs leading-5 text-[#839187]">Task: {campaign.instructions}</p>
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4 lg:justify-end">
+                                            <div className="text-left lg:text-right"><p className="text-[10px] uppercase tracking-[0.12em] text-[#748278]">Reward after approval</p><p className="mt-1 text-lg font-semibold text-[#d9f7a0]">৳{Number(campaign.reward_minor).toLocaleString("en-BD")}</p></div>
+                                            {submission ? <span className={`rounded-lg px-3 py-2 text-xs font-semibold ${submission.status === "approved" ? "bg-[#c9f36a]/10 text-[#d6f5a4]" : submission.status === "rejected" ? "bg-[#e88d82]/10 text-[#f0b9b1]" : "bg-white/[0.06] text-[#bdc9be]"}`}>{submission.status === "submitted" ? "In review" : submission.status}</span> : <form action={startCampaignSessionAction}><input type="hidden" name="campaignId" value={campaign.id} /><button type="submit" className="rounded-lg bg-[#c9f36a] px-4 py-2.5 text-sm font-bold text-[#17210d] transition hover:bg-[#dcff86]">Watch task <span aria-hidden="true">↗</span></button></form>}
+                                        </div>
+                                    </div>
+                                    {submission?.status === "rejected" && submission.rejection_reason ? <p className="mt-3 border-l-2 border-[#e88d82]/50 pl-3 text-xs text-[#d7aaa3]">Provider note: {submission.rejection_reason}</p> : null}
+                                </article>
+                            );
+                        })}
+                    </div>
+                ) : !campaignResult.error ? (
+                    <div className="border-y border-white/10 py-12 text-center"><p className="text-base font-semibold text-white">No live campaigns right now</p><p className="mt-2 text-sm text-[#839187]">Campaigns appear here after review and verified funding.</p><Link href="/advertiser" className="mt-5 inline-flex rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/[0.04]">Post a campaign</Link></div>
+                ) : null}
+            </section>
         </main>
     );
 }
