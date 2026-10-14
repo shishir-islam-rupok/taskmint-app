@@ -67,7 +67,7 @@ export default async function AdvertiserPage({
             </section>
 
             {params.error ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}
-            {profileError ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">Provider storage needs the campaign marketplace migration: {profileError.message}</div> : null}
+            {profileError ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm leading-6 text-[#f0b9b1]">Provider tables are missing. In Supabase Dashboard → SQL Editor, run <code>supabase/schema.sql</code> once if the base schema has not been installed, then run <code>supabase/migrations/20261014_campaign_marketplace.sql</code>. Details: {profileError.message}</div> : null}
             {params.profile ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Provider profile submitted. Campaigns remain in draft until reviewed.</div> : null}
             {params.campaign ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Campaign draft created. It will not appear to earners until it is approved and fully funded.</div> : null}
             {params.funding ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Funding request submitted for manual verification.</div> : null}
