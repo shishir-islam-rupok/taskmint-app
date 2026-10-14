@@ -13,6 +13,50 @@ create table if not exists public.profiles (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.wallets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references public.profiles(id) on delete cascade,
+  balance_minor bigint not null default 0,
+  pending_minor bigint not null default 0,
+  approved_minor bigint not null default 0,
+  currency text not null default 'BDT',
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.wallet_transactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  task_id text,
+  title text not null,
+  source_type text not null default 'task_reward',
+  reward_minor bigint not null default 0,
+  status text not null default 'approved',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.subscription_plans (
+  id uuid primary key default gen_random_uuid(),
+  key text not null unique,
+  name text not null,
+  description text not null,
+  type text not null default 'subscription',
+  price_minor bigint not null default 0,
+  duration_days integer not null default 30,
+  features jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.user_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  plan_key text not null references public.subscription_plans(key) on delete restrict,
+  status text not null default 'active',
+  started_at timestamptz not null default now(),
+  ends_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (user_id, plan_key)
+);
+
 create table if not exists public.user_roles (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -179,6 +223,33 @@ alter table public.risk_events enable row level security;
 
 create policy "Users can view own profile" on public.profiles
   for select using (auth.uid() = id);
+
+create policy "Users can view own wallet" on public.wallets
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert own wallet" on public.wallets
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can update own wallet" on public.wallets
+  for update using (auth.uid() = user_id);
+
+create policy "Users can view own wallet transactions" on public.wallet_transactions
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert own wallet transactions" on public.wallet_transactions
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can view their subscriptions" on public.user_subscriptions
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert their subscriptions" on public.user_subscriptions
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can update their subscriptions" on public.user_subscriptions
+  for update using (auth.uid() = user_id);
+
+create policy "Public can read subscription plans" on public.subscription_plans
+  for select using (true);
 
 create policy "Users can update own profile" on public.profiles
   for update using (auth.uid() = id);

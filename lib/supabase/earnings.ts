@@ -1,0 +1,306 @@
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+export type WalletSummary = {
+    balance_minor: number;
+    pending_minor: number;
+    approved_minor: number;
+    currency: string;
+    updated_at: string | null;
+};
+
+export type SubscriptionPlan = {
+    id: string;
+    key: string;
+    name: string;
+    description: string;
+    type: string;
+    price_minor: number;
+    duration_days: number;
+    features: string[];
+};
+
+export async function getUserDashboardData() {
+    const supabase = await createServerSupabaseClient();
+
+    if (!supabase) {
+        return {
+            configured: false,
+            user: null,
+            wallet: null,
+            plans: [] as SubscriptionPlan[],
+            subscriptions: [] as Array<{ id: string; plan_key: string; status: string; started_at: string; ends_at: string | null; plan: SubscriptionPlan | null }>,
+            transactions: [] as Array<{ id: string; title: string; reward_minor: number; status: string; created_at: string; source_type: string }>,
+        };
+    }
+
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        return {
+            configured: true,
+            user: null,
+            wallet: null,
+            plans: [] as SubscriptionPlan[],
+            subscriptions: [] as Array<{ id: string; plan_key: string; status: string; started_at: string; ends_at: string | null; plan: SubscriptionPlan | null }>,
+            transactions: [] as Array<{ id: string; title: string; reward_minor: number; status: string; created_at: string; source_type: string }>,
+        };
+    }
+
+    let wallet: WalletSummary | null = null;
+    try {
+        const { data, error } = await supabase
+            .from("wallets")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+        if (!error) {
+            wallet = data;
+        }
+    } catch {
+        wallet = null;
+    }
+
+    if (!wallet) {
+        const { data, error } = await supabase
+            .from("wallets")
+            .insert({
+                user_id: user.id,
+                balance_minor: 0,
+                pending_minor: 0,
+                approved_minor: 0,
+                currency: "BDT",
+            })
+            .select()
+            .single();
+
+        if (!error) {
+            wallet = data;
+        }
+    }
+
+    let plans: SubscriptionPlan[] = [];
+    try {
+        const { data, error } = await supabase
+            .from("subscription_plans")
+            .select("*")
+            .order("price_minor", { ascending: true });
+
+        if (!error && data) {
+            plans = (data as SubscriptionPlan[]).map((plan) => ({
+                ...plan,
+                features: Array.isArray(plan.features) ? plan.features : [],
+            }));
+        }
+    } catch {
+        plans = [];
+    }
+
+    if (plans.length === 0) {
+        plans = [
+            {
+                id: "flower-view",
+                key: "flower_view",
+                name: "Flower View",
+                description: "Premium ad preview and boosted visibility for selected promotions.",
+                type: "premium",
+                price_minor: 1200,
+                duration_days: 30,
+                features: ["Unlimited preview access", "Priority quality tasks", "Quick payout filters"],
+            },
+            {
+                id: "task-pass",
+                key: "task_pass",
+                name: "Task Pass",
+                description: "A subscription plan for users who want more tasks and advanced earning channels.",
+                type: "subscription",
+                price_minor: 2500,
+                duration_days: 30,
+                features: ["More campaign slots", "Priority reward queue", "Bonus earning tier"],
+            },
+        ];
+    }
+
+    let subscriptions: Array<{ id: string; plan_key: string; status: string; started_at: string; ends_at: string | null; plan: SubscriptionPlan | null }> = [];
+    try {
+        const { data, error } = await supabase
+            .from("user_subscriptions")
+            .select("*, plan:subscription_plans(*)")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false });
+
+        if (!error && data) {
+            subscriptions = (data as Array<any>).map((row) => ({
+                id: row.id,
+                plan_key: row.plan_key,
+                status: row.status,
+                started_at: row.started_at,
+                ends_at: row.ends_at,
+                plan: row.plan ? {
+                    ...row.plan,
+                    features: Array.isArray(row.plan.features) ? row.plan.features : [],
+                } : null,
+            }));
+        }
+    } catch {
+        subscriptions = [];
+    }
+
+    let transactions: Array<{ id: string; title: string; reward_minor: number; status: string; created_at: string; source_type: string }> = [];
+    try {
+        const { data, error } = await supabase
+            .from("wallet_transactions")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(12);
+
+        if (!error && data) {
+            transactions = data as typeof transactions;
+        }
+    } catch {
+        transactions = [];
+    }
+
+    return {
+        configured: true,
+        user,
+        wallet,
+        plans,
+        subscriptions,
+        transactions,
+    };
+}
+
+export async function creditTaskReward(taskId: string, title: string, rewardMinor: number) {
+    const supabase = await createServerSupabaseClient();
+
+    if (!supabase) {
+        return { success: false, message: "Supabase is not configured." };
+    }
+
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        return { success: false, message: "User session is not valid." };
+    }
+
+    let wallet = null as any;
+    const { data: existingWallet, error: walletError } = await supabase
+        .from("wallets")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+    if (!walletError && existingWallet) {
+        wallet = existingWallet;
+    }
+
+    if (!wallet) {
+        const { data: createdWallet, error: createdWalletError } = await supabase
+            .from("wallets")
+            .insert({
+                user_id: user.id,
+                balance_minor: 0,
+                pending_minor: 0,
+                approved_minor: 0,
+                currency: "BDT",
+            })
+            .select()
+            .single();
+
+        if (createdWalletError || !createdWallet) {
+            return { success: false, message: "Wallet could not be created." };
+        }
+
+        wallet = createdWallet;
+    }
+
+    const totalBalance = Number(wallet.balance_minor || 0) + Number(rewardMinor || 0);
+    const totalApproved = Number(wallet.approved_minor || 0) + Number(rewardMinor || 0);
+
+    const { error: transactionError } = await supabase.from("wallet_transactions").insert({
+        user_id: user.id,
+        task_id: taskId,
+        title,
+        source_type: "task_reward",
+        reward_minor: rewardMinor,
+        status: "approved",
+    });
+
+    if (transactionError) {
+        return { success: false, message: transactionError.message };
+    }
+
+    const { error: walletUpdateError } = await supabase
+        .from("wallets")
+        .update({
+            balance_minor: totalBalance,
+            approved_minor: totalApproved,
+            updated_at: new Date().toISOString(),
+        })
+        .eq("id", wallet.id);
+
+    if (walletUpdateError) {
+        return { success: false, message: walletUpdateError.message };
+    }
+
+    return {
+        success: true,
+        message: `BDT ${rewardMinor} was credited to your wallet.`,
+        balance_minor: totalBalance,
+    };
+}
+
+export async function subscribeToPlan(planKey: string) {
+    const supabase = await createServerSupabaseClient();
+
+    if (!supabase) {
+        return { success: false, message: "Supabase is not configured." };
+    }
+
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        return { success: false, message: "User session is not valid." };
+    }
+
+    const plan = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("key", planKey)
+        .maybeSingle();
+
+    if (plan.error || !plan.data) {
+        return { success: false, message: "Selected subscription plan was not found." };
+    }
+
+    const { error } = await supabase.from("user_subscriptions").upsert(
+        {
+            user_id: user.id,
+            plan_key: planKey,
+            status: "active",
+            started_at: new Date().toISOString(),
+            ends_at: new Date(Date.now() + (plan.data.duration_days || 30) * 24 * 60 * 60 * 1000).toISOString(),
+        },
+        { onConflict: "user_id,plan_key" },
+    );
+
+    if (error) {
+        return { success: false, message: error.message };
+    }
+
+    return {
+        success: true,
+        message: `${plan.data.name} is active for your account.`,
+    };
+}
