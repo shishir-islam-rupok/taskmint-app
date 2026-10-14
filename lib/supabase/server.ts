@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { isSupabaseConfigured } from "./config";
+import { getSupabaseAnonKey, isSupabaseConfigured } from "./config";
 
 export async function createServerSupabaseClient() {
     if (!isSupabaseConfigured()) {
@@ -11,7 +11,7 @@ export async function createServerSupabaseClient() {
 
     return createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        getSupabaseAnonKey(),
         {
             cookies: {
                 getAll() {

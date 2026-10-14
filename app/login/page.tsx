@@ -5,26 +5,51 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-const providers = ["Email", "Google", "Apple"];
+const oauthProviders = ["Google", "Apple"] as const;
 
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState("user@example.com");
     const [password, setPassword] = useState("password123");
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
+    const [mode, setMode] = useState<"signin" | "signup">("signin");
     const configured = isSupabaseConfigured();
 
-    async function handleEmailLogin(event: React.FormEvent<HTMLFormElement>) {
+    async function handleAuthSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
         setError("");
+        setSuccess("");
 
         const client = createClient();
 
-        if (!client) {
-            document.cookie = `taskmint_demo_session=${encodeURIComponent(email || "taskmint-user")}; path=/; max-age=86400`;
-            router.push("/dashboard");
+        if (!client || !configured) {
+            setError("Supabase is not configured yet. Add your project URL and key to continue.");
+            setLoading(false);
+            return;
+        }
+
+        if (mode === "signup") {
+            const { data, error: signUpError } = await client.auth.signUp({
+                email,
+                password,
+            });
+
+            if (signUpError) {
+                setError(signUpError.message);
+                setLoading(false);
+                return;
+            }
+
+            if (data.user && !data.session) {
+                setSuccess("Account created. Check your email to confirm your sign-up.");
+            } else {
+                router.push("/dashboard");
+            }
+
+            setLoading(false);
             return;
         }
 
@@ -42,9 +67,24 @@ export default function LoginPage() {
         router.push("/dashboard");
     }
 
-    function handleDemoAccess() {
-        document.cookie = `taskmint_demo_session=${encodeURIComponent(email || "demo-user")}; path=/; max-age=86400`;
-        router.push("/dashboard");
+    async function handleProviderLogin(provider: (typeof oauthProviders)[number]) {
+        const client = createClient();
+
+        if (!client || !configured) {
+            setError("Supabase is not configured yet. Add your project URL and key to continue.");
+            return;
+        }
+
+        const { error: oauthError } = await client.auth.signInWithOAuth({
+            provider: provider.toLowerCase() as "google" | "apple",
+            options: {
+                redirectTo: `${window.location.origin}/dashboard`,
+            },
+        });
+
+        if (oauthError) {
+            setError(oauthError.message);
+        }
     }
 
     return (
@@ -54,7 +94,7 @@ export default function LoginPage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#9ef8dc]">
                         Secure access
                     </p>
-                    <h1 className="mt-5 text-4xl font-black text-white">Welcome back to TaskMint</h1>
+                    <h1 className="mt-5 text-4xl font-black text-white">Welcome to TaskMint</h1>
                     <p className="mt-4 text-base leading-7 text-slate-300">
                         Sign in to review task eligibility, manage your wallet, and track approved submissions with clear payout visibility.
                     </p>
@@ -74,16 +114,35 @@ export default function LoginPage() {
                 </div>
 
                 <div className="p-8 sm:p-10">
-                    <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Sign in</p>
-                    <h2 className="mt-3 text-3xl font-bold text-white">Access your account</h2>
+                    <div className="flex gap-2 rounded-full border border-white/10 bg-[#091921] p-1">
+                        <button
+                            type="button"
+                            onClick={() => setMode("signin")}
+                            className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold transition ${mode === "signin" ? "bg-[#7ef5d3] text-[#06151b]" : "text-slate-300"}`}
+                        >
+                            Sign in
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setMode("signup")}
+                            className={`flex-1 rounded-full px-3 py-2 text-sm font-semibold transition ${mode === "signup" ? "bg-[#7ef5d3] text-[#06151b]" : "text-slate-300"}`}
+                        >
+                            Create account
+                        </button>
+                    </div>
 
-                    <form onSubmit={handleEmailLogin} className="mt-6 space-y-4">
+                    <h2 className="mt-6 text-3xl font-bold text-white">
+                        {mode === "signin" ? "Access your account" : "Create your account"}
+                    </h2>
+
+                    <form onSubmit={handleAuthSubmit} className="mt-6 space-y-4">
                         <input
                             type="email"
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
                             placeholder="you@example.com"
                             className="w-full rounded-full border border-white/10 bg-[#091921] px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-[#7ef5d3]/70"
+                            required
                         />
 
                         <input
@@ -92,6 +151,8 @@ export default function LoginPage() {
                             onChange={(event) => setPassword(event.target.value)}
                             placeholder="Password"
                             className="w-full rounded-full border border-white/10 bg-[#091921] px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-[#7ef5d3]/70"
+                            required
+                            minLength={6}
                         />
 
                         {error ? (
@@ -100,22 +161,28 @@ export default function LoginPage() {
                             </p>
                         ) : null}
 
+                        {success ? (
+                            <p className="rounded-2xl border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200">
+                                {success}
+                            </p>
+                        ) : null}
+
                         <button
                             type="submit"
                             disabled={loading}
                             className="w-full rounded-full bg-[#7ef5d3] px-4 py-3 text-sm font-bold text-[#06151b] transition hover:bg-[#9ef3dc] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {loading ? "Signing in..." : "Sign in with email"}
+                            {loading ? (mode === "signin" ? "Signing in..." : "Creating account...") : mode === "signin" ? "Sign in with email" : "Create account"}
                         </button>
                     </form>
 
                     <div className="mt-6 space-y-3">
-                        {providers.map((provider) => (
+                        {oauthProviders.map((provider) => (
                             <button
                                 key={provider}
                                 className="flex w-full items-center justify-center rounded-full border border-white/10 bg-white/4 px-4 py-3 text-sm font-semibold text-white transition hover:border-[#7ef5d3]/40 hover:bg-[#7ef5d3]/10"
                                 type="button"
-                                onClick={handleDemoAccess}
+                                onClick={() => handleProviderLogin(provider)}
                             >
                                 Continue with {provider}
                             </button>
@@ -124,8 +191,8 @@ export default function LoginPage() {
 
                     <div className="mt-6 rounded-2xl border border-white/10 bg-[#091921] p-4 text-sm text-slate-300">
                         {configured
-                            ? "Supabase is configured for live auth. Use your real credentials or sign in via provider."
-                            : "Demo mode: Supabase env values are not configured yet. This page falls back to a local demo session for app flow testing."}
+                            ? "Supabase auth is enabled for live sign-in and account creation."
+                            : "Supabase env values are not configured yet. Add your project URL and key to enable authentication."}
                     </div>
                 </div>
             </div>

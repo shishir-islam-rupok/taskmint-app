@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getSupabaseAnonKey } from "@/lib/supabase/config";
 
 const protectedRoutes = ["/dashboard", "/wallet", "/advertiser", "/review", "/admin"];
 
@@ -13,7 +14,7 @@ export async function proxy(request: NextRequest) {
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        getSupabaseAnonKey(),
         {
             cookies: {
                 getAll() {
