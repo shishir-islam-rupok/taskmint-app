@@ -28,6 +28,7 @@ export default async function DashboardPage() {
             .maybeSingle(),
     ]);
     const isAdmin = (rolesResult.data || []).some((role) => role.role === "admin");
+    const isFinance = (rolesResult.data || []).some((role) => role.role === "finance");
 
     const displayName = claims.user_metadata?.full_name || claims.email?.split("@")[0] || "TaskMint User";
     const wallet = walletResult.data ?? {
@@ -50,6 +51,8 @@ export default async function DashboardPage() {
 
                 <div className="flex items-center gap-2">
                     {isAdmin ? <Link href="/admin/campaigns" className="rounded-lg border border-[#c9f36a]/25 px-3 py-2 text-sm font-semibold text-[#d6f5a4] hover:bg-[#c9f36a]/10">Campaign ops</Link> : null}
+                    {isAdmin || isFinance ? <Link href="/admin/withdrawals" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] hover:bg-white/4">Payout ops</Link> : null}
+                    <Link href="/wallet" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] hover:bg-white/4">Wallet</Link>
                     <form action={logoutAction}>
                         <button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/4 hover:text-white">Sign out</button>
                     </form>

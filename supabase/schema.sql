@@ -160,8 +160,11 @@ create table if not exists public.withdrawal_requests (
   amount_minor bigint not null check (amount_minor > 0),
   currency text not null default 'BDT',
   payout_method text not null,
+  payout_account text,
   status text not null default 'requested',
   provider_reference text,
+  idempotency_key uuid,
+  review_note text,
   requested_at timestamptz not null default now(),
   processed_at timestamptz,
   reviewer_id uuid references public.profiles(id)
@@ -205,6 +208,11 @@ create index if not exists idx_campaigns_state on public.campaigns(state);
 create index if not exists idx_submissions_status on public.task_submissions(status);
 create index if not exists idx_ledger_entries_account on public.ledger_entries(account_id);
 create index if not exists idx_withdrawal_requests_status on public.withdrawal_requests(status);
+create unique index if not exists idx_withdrawals_user_idempotency
+  on public.withdrawal_requests(user_id, idempotency_key)
+  where idempotency_key is not null;
+create index if not exists idx_withdrawals_user_status_created
+  on public.withdrawal_requests(user_id, status, requested_at desc);
 create index if not exists idx_audit_logs_actor on public.audit_logs(actor_id);
 
 alter table public.profiles enable row level security;
@@ -243,32 +251,14 @@ create policy "Users can view own profile" on public.profiles
 create policy "Users can view own wallet" on public.wallets
   for select using (auth.uid() = user_id);
 
-create policy "Users can insert own wallet" on public.wallets
-  for insert with check (auth.uid() = user_id);
-
-create policy "Users can update own wallet" on public.wallets
-  for update using (auth.uid() = user_id);
-
 create policy "Users can view own wallet transactions" on public.wallet_transactions
   for select using (auth.uid() = user_id);
-
-create policy "Users can insert own wallet transactions" on public.wallet_transactions
-  for insert with check (auth.uid() = user_id);
 
 create policy "Users can view their subscriptions" on public.user_subscriptions
   for select using (auth.uid() = user_id);
 
-create policy "Users can insert their subscriptions" on public.user_subscriptions
-  for insert with check (auth.uid() = user_id);
-
-create policy "Users can update their subscriptions" on public.user_subscriptions
-  for update using (auth.uid() = user_id);
-
 create policy "Public can read subscription plans" on public.subscription_plans
   for select using (true);
-
-create policy "Users can update own profile" on public.profiles
-  for update using (auth.uid() = id);
 
 create policy "Admin can access all profiles" on public.profiles
   for all using (public.current_user_has_role(array['admin']::text[]));
@@ -285,9 +275,6 @@ create policy "Authenticated users can read their own submissions" on public.tas
 create policy "Admins and reviewers can access review queue" on public.task_submissions
   for select using (public.current_user_has_role(array['reviewer', 'admin']::text[]));
 
-create policy "Authenticated users can insert their own submissions" on public.task_submissions
-  for insert with check (user_id = auth.uid());
-
 create policy "Users can read their own withdrawal requests" on public.withdrawal_requests
   for select using (user_id = auth.uid());
 
@@ -303,8 +290,8 @@ create policy "Finance and admins can read all ledger transactions" on public.le
 create policy "Finance and admins can read all ledger entries" on public.ledger_entries
   for select using (public.current_user_has_role(array['finance', 'admin']::text[]));
 
-create policy "Admins can manage advertisers" on public.advertiser_profiles
-  for all using (public.current_user_has_role(array['admin']::text[]));
+create policy "Admins can read all advertisers" on public.advertiser_profiles
+  for select using (public.current_user_has_role(array['admin']::text[]));
 
 create policy "Advertisers can view own campaigns" on public.campaigns
   for select using (
@@ -315,8 +302,8 @@ create policy "Advertisers can view own campaigns" on public.campaigns
     )
   );
 
-create policy "Admins can manage all campaigns" on public.campaigns
-  for all using (public.current_user_has_role(array['admin']::text[]));
+create policy "Admins can read all campaigns" on public.campaigns
+  for select using (public.current_user_has_role(array['admin']::text[]));
 
 create policy "Users can read audit entries linked to themselves" on public.audit_logs
   for select using (actor_id = auth.uid());

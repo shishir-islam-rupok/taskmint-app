@@ -35,7 +35,7 @@ export default async function CampaignOperationsPage({
         <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 text-[#f1f4e9] sm:px-8 sm:py-10">
             <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
                 <div><p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">TaskMint operations</p><h1 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Campaign review</h1></div>
-                <nav className="flex gap-2"><Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm text-[#a9b5aa] hover:bg-white/5 hover:text-white">Workspace</Link><Link href="/adsincome" className="rounded-lg px-3 py-2 text-sm text-[#a9b5aa] hover:bg-white/5 hover:text-white">Earn tasks</Link></nav>
+                <nav className="flex gap-2"><Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm text-[#a9b5aa] hover:bg-white/5 hover:text-white">Workspace</Link><Link href="/admin/withdrawals" className="rounded-lg px-3 py-2 text-sm text-[#a9b5aa] hover:bg-white/5 hover:text-white">Payouts</Link><Link href="/adsincome" className="rounded-lg px-3 py-2 text-sm text-[#a9b5aa] hover:bg-white/5 hover:text-white">Earn tasks</Link></nav>
             </header>
 
             {params.error ? <div role="alert" className="mb-5 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}

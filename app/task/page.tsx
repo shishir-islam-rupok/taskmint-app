@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
 import { getUserDashboardData } from "@/lib/supabase/earnings";
+import { canActivateSubscriptionWithoutPayment } from "@/lib/supabase/subscription-policy.mjs";
 import { subscribePlanAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,7 @@ export default async function TaskPage({
         <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-6 text-[#f1f4e9] sm:px-8 sm:py-10">
             <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
                 <Link href="/" className="flex items-center gap-2.5 text-base font-extrabold tracking-tight text-white"><span className="grid size-8 place-items-center rounded-lg bg-[#c9f36a] text-xs font-black text-[#17210d]">T</span>taskmint</Link>
-                <nav className="flex items-center gap-2 sm:gap-3"><Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] hover:bg-white/5 hover:text-white">Dashboard</Link><Link href="/adsincome" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] hover:bg-white/5 hover:text-white">Campaigns</Link><form action={logoutAction}><button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] hover:bg-white/4 hover:text-white">Sign out</button></form></nav>
+                <nav className="flex items-center gap-2 sm:gap-3"><Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] hover:bg-white/5 hover:text-white">Dashboard</Link><Link href="/wallet" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] hover:bg-white/5 hover:text-white">Wallet</Link><Link href="/adsincome" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] hover:bg-white/5 hover:text-white">Campaigns</Link><form action={logoutAction}><button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] hover:bg-white/4 hover:text-white">Sign out</button></form></nav>
             </header>
 
             {statusMessage ? <div role="status" className={`mb-5 border px-4 py-3 text-sm ${params.status === "error" ? "border-[#e88d82]/30 bg-[#e88d82]/8 text-[#f0b9b1]" : "border-[#c9f36a]/25 bg-[#c9f36a]/7 text-[#d6f5a4]"}`}>{statusMessage}</div> : null}
@@ -66,15 +67,17 @@ export default async function TaskPage({
                     <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Plans for your workspace</h2>
                     <p className="mt-2 text-sm leading-5 text-[#9aa99f]">Subscription management remains linked to your TaskMint account.</p>
                     <div className="mt-5 divide-y divide-white/10 border-y border-white/10">
-                        {(dashboard.plans || []).map((plan) => {
+                        {dashboard.plans.length ? dashboard.plans.map((plan) => {
                             const isActive = (dashboard.subscriptions || []).some((subscription) => subscription.plan_key === plan.key && subscription.status === "active");
+                            const canActivate = canActivateSubscriptionWithoutPayment(plan.price_minor);
                             return <div key={plan.key} className="py-4">
                                 <div className="flex items-start justify-between gap-3"><div><h3 className="text-sm font-semibold text-white">{plan.name}</h3><p className="mt-1.5 text-xs leading-5 text-[#9aa99f]">{plan.description}</p></div><span className={`shrink-0 rounded-sm px-2 py-1 text-[9px] font-bold uppercase tracking-widest ${isActive ? "bg-[#c9f36a]/10 text-[#d6f5a4]" : "bg-white/6 text-[#9aa99f]"}`}>{isActive ? "Active" : "Available"}</span></div>
-                                <div className="mt-4 flex items-center justify-between gap-3"><p className="text-lg font-semibold text-white">৳{plan.price_minor}<span className="ml-1 text-[10px] font-normal text-[#748278]">BDT</span></p><form action={subscribePlanAction}><input type="hidden" name="planKey" value={plan.key} /><button type="submit" className="rounded-lg border border-[#c9f36a]/30 px-3 py-2 text-xs font-semibold text-[#d6f5a4] transition hover:bg-[#c9f36a]/10">{isActive ? "Renew plan" : "View plan"}</button></form></div>
+                                <div className="mt-4 flex items-center justify-between gap-3"><p className="text-lg font-semibold text-white">৳{plan.price_minor}<span className="ml-1 text-[10px] font-normal text-[#748278]">BDT</span></p><form action={subscribePlanAction}><input type="hidden" name="planKey" value={plan.key} /><button type="submit" disabled={!canActivate} className="rounded-lg border border-[#c9f36a]/30 px-3 py-2 text-xs font-semibold text-[#d6f5a4] transition hover:bg-[#c9f36a]/10 disabled:cursor-not-allowed disabled:opacity-45">{isActive ? "Active" : canActivate ? "Activate free plan" : "Payment setup required"}</button></form></div>
                                 {(plan.features || []).length > 0 ? <ul className="mt-4 space-y-2">{(plan.features || []).map((feature) => <li key={feature} className="flex gap-2 text-xs text-[#a9b5aa]"><span className="text-[#c9f36a]">—</span><span>{feature}</span></li>)}</ul> : null}
                             </div>;
-                        })}
+                        }) : <p className="py-6 text-sm text-[#839187]">No subscription plans are currently configured for this account.</p>}
                     </div>
+                    <p className="mt-4 text-xs leading-5 text-[#839187]">Paid subscriptions stay unavailable until a payment provider and verified payment flow are configured.</p>
                 </aside>
             </section>
         </main>

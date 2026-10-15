@@ -24,6 +24,8 @@ Apply `supabase/schema.sql` to a new Supabase project, then apply `supabase/migr
 
 If an existing project reports `42P17 infinite recursion detected in policy for relation "user_roles"`, run `supabase/migrations/20261015_fix_user_roles_recursion.sql` in the Supabase SQL Editor. This focused repair replaces self-querying role policies with a `SECURITY DEFINER` helper; it is safe to rerun and does not require rerunning `schema.sql`.
 
+After the role repair, apply `supabase/migrations/20261016_financial_workflows.sql`, then `supabase/migrations/20261016_wallet_withdrawals.sql`. These remove direct wallet/subscription writes, add audited finance review RPCs, and reserve/release withdrawal balances transactionally. Do not rerun the base schema on an existing database.
+
 To grant the first administrator, run this in the Supabase SQL editor after replacing the email:
 
 ```sql
@@ -35,6 +37,8 @@ on conflict (user_id, role) do nothing;
 Providers register at `/advertiser`, create a draft, and submit a transfer reference for manual funding verification. An administrator reviews the provider, verifies payment against the external account, and approves the campaign at `/admin/campaigns`. Only approved campaigns with the full budget marked as paid are visible at `/adsincome`. Earner submissions remain pending until the provider approves them; the review RPC updates the wallet and transaction atomically.
 
 Funding is currently reconciled manually; no payment gateway is configured. The marketplace is for TaskMint-owned sponsored activities, not incentivized impressions or clicks on Google AdSense, Adsterra, or other third-party ad-network units. Do not embed or reward ad-network clicks/views.
+
+Withdrawals are also manual: TaskMint reserves a request from the available wallet balance, and finance/admin staff must send the money externally before recording it as paid. There is no payout provider integration. Existing `*_minor` wallet columns are currently interpreted by the app as whole BDT units; these migrations preserve historical values and do not rescale them. Audit/reconcile existing balances before introducing decimal minor-unit conversions. Paid subscriptions remain disabled until checkout and payment verification are configured.
 
 ## Adsterra Smartlink Setup
 

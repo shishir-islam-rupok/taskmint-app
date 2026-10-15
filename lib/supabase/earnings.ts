@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { canActivateSubscriptionWithoutPayment } from "./subscription-policy.mjs";
 
 export type WalletSummary = {
     balance_minor: number;
@@ -93,31 +94,6 @@ export async function getUserDashboardData() {
         }));
     }
 
-    if (plans.length === 0) {
-        plans = [
-            {
-                id: "flower-view",
-                key: "flower_view",
-                name: "Flower View",
-                description: "Premium ad preview and boosted visibility for selected promotions.",
-                type: "premium",
-                price_minor: 1200,
-                duration_days: 30,
-                features: ["Unlimited preview access", "Priority quality tasks", "Quick payout filters"],
-            },
-            {
-                id: "task-pass",
-                key: "task_pass",
-                name: "Task Pass",
-                description: "A subscription plan for users who want more tasks and advanced earning channels.",
-                type: "subscription",
-                price_minor: 2500,
-                duration_days: 30,
-                features: ["More campaign slots", "Priority reward queue", "Bonus earning tier"],
-            },
-        ];
-    }
-
     const subscriptions: Array<{ id: string; plan_key: string; status: string; started_at: string; ends_at: string | null; plan: SubscriptionPlan | null }> =
         subscriptionResult.status === "fulfilled" && !subscriptionResult.value.error && subscriptionResult.value.data
             ? (subscriptionResult.value.data as SubscriptionRow[]).map((row) => ({
@@ -174,16 +150,13 @@ export async function subscribeToPlan(planKey: string) {
         return { success: false, message: "Selected subscription plan was not found." };
     }
 
-    const { error } = await supabase.from("user_subscriptions").upsert(
-        {
-            user_id: user.id,
-            plan_key: planKey,
-            status: "active",
-            started_at: new Date().toISOString(),
-            ends_at: new Date(Date.now() + (plan.data.duration_days || 30) * 24 * 60 * 60 * 1000).toISOString(),
-        },
-        { onConflict: "user_id,plan_key" },
-    );
+    if (!canActivateSubscriptionWithoutPayment(plan.data.price_minor)) {
+        return { success: false, message: "Paid subscriptions cannot be activated until a payment provider is configured." };
+    }
+
+    const { error } = await supabase.rpc("activate_free_subscription", {
+        p_plan_key: planKey,
+    });
 
     if (error) {
         return { success: false, message: error.message };

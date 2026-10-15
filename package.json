@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/adsterra-config.test.mjs"
+    "test": "node --test tests/adsterra-config.test.mjs tests/subscription-policy.test.mjs tests/withdrawal-validation.test.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

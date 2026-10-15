@@ -23,14 +23,11 @@ export async function reviewAdvertiserProfileAction(formData: FormData) {
     if (!profileId || (decision !== "approved" && decision !== "rejected")) adminError("Invalid provider review.");
 
     const supabase = await getAdminClient();
-    const { data, error } = await supabase
-        .from("advertiser_profiles")
-        .update({ review_status: decision })
-        .eq("id", profileId)
-        .eq("review_status", "pending")
-        .select("id")
-        .maybeSingle();
-    if (error || !data) adminError(error?.message || "Provider profile is no longer pending.");
+    const { error } = await supabase.rpc("review_advertiser_profile", {
+        p_profile_id: profileId,
+        p_decision: decision,
+    });
+    if (error) adminError(error.message);
     redirect(`/admin/campaigns?provider=${decision}`);
 }
 
@@ -50,13 +47,10 @@ export async function reviewCampaignFundingAction(formData: FormData) {
     if (!fundingId || (decision !== "paid" && decision !== "rejected")) adminError("Invalid funding review.");
 
     const supabase = await getAdminClient();
-    const { data, error } = await supabase
-        .from("campaign_funding")
-        .update({ status: decision })
-        .eq("id", fundingId)
-        .eq("status", "pending")
-        .select("id")
-        .maybeSingle();
-    if (error || !data) adminError(error?.message || "Funding request is no longer pending.");
+    const { error } = await supabase.rpc("review_campaign_funding", {
+        p_funding_id: fundingId,
+        p_decision: decision,
+    });
+    if (error) adminError(error.message);
     redirect(`/admin/campaigns?funding=${decision}`);
 }
