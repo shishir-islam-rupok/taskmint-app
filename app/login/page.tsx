@@ -99,26 +99,26 @@ export default function LoginPage() {
                     <div className="absolute -right-10 top-38 size-44 rounded-full border border-[#c9f36a]/10" />
                     <Link href="/" className="relative flex w-fit items-center gap-2.5 text-base font-extrabold tracking-tight text-white"><span className="grid size-8 place-items-center rounded-lg bg-[#c9f36a] text-xs font-black text-[#17210d]">T</span>taskmint</Link>
                     <div className="relative mt-16 sm:mt-24">
-                    <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">
-                        Your work, in focus
-                    </p>
-                    <h1 className="mt-5 max-w-sm text-4xl font-semibold leading-tight tracking-[-0.03em] text-white sm:text-5xl">A better view of your online work.</h1>
-                    <p className="mt-4 max-w-md text-sm leading-7 text-[#a9b5aa] sm:text-base">
-                        Sign in to find activities, follow your rewards, and manage your account from one secure workspace.
-                    </p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">
+                            Your work, in focus
+                        </p>
+                        <h1 className="mt-5 max-w-sm text-4xl font-semibold leading-tight tracking-[-0.03em] text-white sm:text-5xl">A better view of your online work.</h1>
+                        <p className="mt-4 max-w-md text-sm leading-7 text-[#a9b5aa] sm:text-base">
+                            Sign in to find activities, follow your rewards, and manage your account from one secure workspace.
+                        </p>
 
-                    <div className="mt-9 space-y-3">
-                        {[
-                            "Private, authenticated account access",
-                            "Clear balance and reward status",
-                            "Activities with upfront reward details",
-                        ].map((item) => (
-                            <div key={item} className="flex items-center gap-3 border-b border-white/[0.08] py-3 text-sm text-[#d5ded2]">
-                                <div className="grid size-5 shrink-0 place-items-center rounded-full border border-[#c9f36a]/35 text-[10px] text-[#c9f36a]">✓</div>
-                                <span>{item}</span>
-                            </div>
-                        ))}
-                    </div>
+                        <div className="mt-9 space-y-3">
+                            {[
+                                "Private, authenticated account access",
+                                "Clear balance and reward status",
+                                "Activities with upfront reward details",
+                            ].map((item) => (
+                                <div key={item} className="flex items-center gap-3 border-b border-white/8 py-3 text-sm text-[#d5ded2]">
+                                    <div className="grid size-5 shrink-0 place-items-center rounded-full border border-[#c9f36a]/35 text-[10px] text-[#c9f36a]">✓</div>
+                                    <span>{item}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                     <p className="relative mt-auto pt-12 text-xs text-[#839187]">Secure sign-in powered by Supabase</p>
                 </div>
@@ -190,7 +190,7 @@ export default function LoginPage() {
                         {oauthProviders.map((provider) => (
                             <button
                                 key={provider}
-                                className="flex w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.025] px-4 py-3 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/[0.05]"
+                                className="flex w-full items-center justify-center rounded-lg border border-white/10 bg-white/2.5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/20 hover:bg-white/5"
                                 type="button"
                                 onClick={() => handleProviderLogin(provider)}
                             >
@@ -199,7 +199,7 @@ export default function LoginPage() {
                         ))}
                     </div>
 
-                    <div className="mt-6 border-t border-white/[0.08] pt-4 text-xs leading-5 text-[#839187]">
+                    <div className="mt-6 border-t border-white/8 pt-4 text-xs leading-5 text-[#839187]">
                         {configured
                             ? "Supabase auth is enabled for live sign-in and account creation."
                             : "Supabase env values are not configured yet. Add your project URL and key to enable authentication."}
