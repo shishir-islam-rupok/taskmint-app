@@ -49,54 +49,48 @@ export async function getUserDashboardData() {
         };
     }
 
-    let wallet: WalletSummary | null = null;
-    try {
-        const { data, error } = await supabase
+    type SubscriptionRow = {
+        id: string;
+        plan_key: string;
+        status: string;
+        started_at: string;
+        ends_at: string | null;
+        plan: SubscriptionPlan | null;
+    };
+
+    const [walletResult, planResult, subscriptionResult, transactionResult] = await Promise.allSettled([
+        supabase
             .from("wallets")
             .select("*")
             .eq("user_id", user.id)
-            .maybeSingle();
-
-        if (!error) {
-            wallet = data;
-        }
-    } catch {
-        wallet = null;
-    }
-
-    if (!wallet) {
-        const { data, error } = await supabase
-            .from("wallets")
-            .insert({
-                user_id: user.id,
-                balance_minor: 0,
-                pending_minor: 0,
-                approved_minor: 0,
-                currency: "BDT",
-            })
-            .select()
-            .single();
-
-        if (!error) {
-            wallet = data;
-        }
-    }
-
-    let plans: SubscriptionPlan[] = [];
-    try {
-        const { data, error } = await supabase
+            .maybeSingle(),
+        supabase
             .from("subscription_plans")
             .select("*")
-            .order("price_minor", { ascending: true });
+            .order("price_minor", { ascending: true }),
+        supabase
+            .from("user_subscriptions")
+            .select("*, plan:subscription_plans(*)")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false }),
+        supabase
+            .from("wallet_transactions")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(12),
+    ] as const);
 
-        if (!error && data) {
-            plans = (data as SubscriptionPlan[]).map((plan) => ({
-                ...plan,
-                features: Array.isArray(plan.features) ? plan.features : [],
-            }));
-        }
-    } catch {
-        plans = [];
+    const wallet: WalletSummary | null = walletResult.status === "fulfilled" && !walletResult.value.error
+        ? walletResult.value.data
+        : null;
+
+    let plans: SubscriptionPlan[] = [];
+    if (planResult.status === "fulfilled" && !planResult.value.error && planResult.value.data) {
+        plans = (planResult.value.data as SubscriptionPlan[]).map((plan) => ({
+            ...plan,
+            features: Array.isArray(plan.features) ? plan.features : [],
+        }));
     }
 
     if (plans.length === 0) {
@@ -124,24 +118,9 @@ export async function getUserDashboardData() {
         ];
     }
 
-    let subscriptions: Array<{ id: string; plan_key: string; status: string; started_at: string; ends_at: string | null; plan: SubscriptionPlan | null }> = [];
-    type SubscriptionRow = {
-        id: string;
-        plan_key: string;
-        status: string;
-        started_at: string;
-        ends_at: string | null;
-        plan: SubscriptionPlan | null;
-    };
-    try {
-        const { data, error } = await supabase
-            .from("user_subscriptions")
-            .select("*, plan:subscription_plans(*)")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false });
-
-        if (!error && data) {
-            subscriptions = (data as SubscriptionRow[]).map((row) => ({
+    const subscriptions: Array<{ id: string; plan_key: string; status: string; started_at: string; ends_at: string | null; plan: SubscriptionPlan | null }> =
+        subscriptionResult.status === "fulfilled" && !subscriptionResult.value.error && subscriptionResult.value.data
+            ? (subscriptionResult.value.data as SubscriptionRow[]).map((row) => ({
                 id: row.id,
                 plan_key: row.plan_key,
                 status: row.status,
@@ -151,27 +130,13 @@ export async function getUserDashboardData() {
                     ...row.plan,
                     features: Array.isArray(row.plan.features) ? row.plan.features : [],
                 } : null,
-            }));
-        }
-    } catch {
-        subscriptions = [];
-    }
+            }))
+            : [];
 
-    let transactions: Array<{ id: string; title: string; reward_minor: number; status: string; created_at: string; source_type: string }> = [];
-    try {
-        const { data, error } = await supabase
-            .from("wallet_transactions")
-            .select("*")
-            .eq("user_id", user.id)
-            .order("created_at", { ascending: false })
-            .limit(12);
-
-        if (!error && data) {
-            transactions = data as typeof transactions;
-        }
-    } catch {
-        transactions = [];
-    }
+    const transactions: Array<{ id: string; title: string; reward_minor: number; status: string; created_at: string; source_type: string }> =
+        transactionResult.status === "fulfilled" && !transactionResult.value.error && transactionResult.value.data
+            ? transactionResult.value.data as Array<{ id: string; title: string; reward_minor: number; status: string; created_at: string; source_type: string }>
+            : [];
 
     return {
         configured: true,

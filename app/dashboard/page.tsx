@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getUserDashboardData } from "@/lib/supabase/earnings";
 
 export const dynamic = "force-dynamic";
 
@@ -20,12 +19,18 @@ export default async function DashboardPage() {
         redirect("/login");
     }
 
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", claims.sub);
-    const isAdmin = (roles || []).some((role) => role.role === "admin");
+    const [rolesResult, walletResult] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", claims.sub),
+        supabase
+            .from("wallets")
+            .select("balance_minor,pending_minor,approved_minor,currency,updated_at")
+            .eq("user_id", claims.sub)
+            .maybeSingle(),
+    ]);
+    const isAdmin = (rolesResult.data || []).some((role) => role.role === "admin");
 
     const displayName = claims.user_metadata?.full_name || claims.email?.split("@")[0] || "TaskMint User";
-    const dashboard = await getUserDashboardData();
-    const wallet = dashboard.wallet ?? {
+    const wallet = walletResult.data ?? {
         balance_minor: 0,
         pending_minor: 0,
         approved_minor: 0,

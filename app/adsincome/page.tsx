@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
-import { getUserDashboardData } from "@/lib/supabase/earnings";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CampaignTimer } from "./campaign-timer";
 import { startCampaignSessionAction } from "./actions";
@@ -39,8 +38,12 @@ export default async function AdsIncomePage({
         smartlinkUrl: process.env.ADSTERRA_SMARTLINK_URL,
     });
 
-    const [dashboard, campaignResult, submissionResult] = await Promise.all([
-        getUserDashboardData(),
+    const [walletResult, campaignResult, submissionResult] = await Promise.all([
+        supabase
+            .from("wallets")
+            .select("balance_minor,pending_minor,approved_minor,currency,updated_at")
+            .eq("user_id", user.id)
+            .maybeSingle(),
         supabase
             .from("campaigns")
             .select("id,title,category,description,instructions,reward_minor,currency,slot_count,watch_seconds,destination_url,created_at")
@@ -53,7 +56,7 @@ export default async function AdsIncomePage({
             .eq("user_id", user.id),
     ]);
 
-    const wallet = dashboard.wallet ?? {
+    const wallet = walletResult.data ?? {
         balance_minor: 0,
         pending_minor: 0,
         approved_minor: 0,
@@ -147,7 +150,8 @@ export default async function AdsIncomePage({
 
             {params.submitted ? <div role="status" className="mt-4 border border-[#c9f36a]/25 bg-[#c9f36a]/7 px-4 py-3 text-sm text-[#d6f5a4]">Submission received. The reward is pending provider review.</div> : null}
             {params.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}
-            {campaignResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm leading-6 text-[#f0b9b1]">{rolePolicyRecursion ? <>The database role policies are recursive. Run the updated <code>supabase/migrations/20261014_campaign_marketplace.sql</code> again to repair them, then reload.</> : marketplaceMigrationMissing ? <>Base campaign tables exist, but the marketplace migration is missing. Run only <code>supabase/migrations/20261014_campaign_marketplace.sql</code> in the Supabase SQL Editor, then reload.</> : <>Campaign tables are missing. In the Supabase SQL Editor, run <code>supabase/schema.sql</code> once if the base schema has not been installed, then run <code>supabase/migrations/20261014_campaign_marketplace.sql</code>. Reload after both complete.</>} Details: {campaignResult.error.message}</div> : null}
+            {campaignResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm leading-6 text-[#f0b9b1]">{rolePolicyRecursion ? <>The database role policies are recursive. Run <code>supabase/migrations/20261015_fix_user_roles_recursion.sql</code> in the Supabase SQL Editor, then reload.</> : marketplaceMigrationMissing ? <>Base campaign tables exist, but the marketplace migration is missing. Run only <code>supabase/migrations/20261014_campaign_marketplace.sql</code> in the Supabase SQL Editor, then reload.</> : <>Campaign tables are missing. In the Supabase SQL Editor, run <code>supabase/schema.sql</code> once if the base schema has not been installed, then run <code>supabase/migrations/20261014_campaign_marketplace.sql</code>. Reload after both complete.</>} Details: {campaignResult.error.message}</div> : null}
+            {walletResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">Could not load your wallet summary: {walletResult.error.message}</div> : null}
             {submissionResult.error && !campaignResult.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">Could not load your submission history: {submissionResult.error.message}</div> : null}
             {watchError ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">Could not load the watch session: {watchError}</div> : null}
 

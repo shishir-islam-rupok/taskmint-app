@@ -22,6 +22,8 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 Apply `supabase/schema.sql` to a new Supabase project, then apply `supabase/migrations/20261014_campaign_marketplace.sql`. The migration adds server-timed campaign sessions, reviewable submissions, advertiser funding requests, administrator approval functions, and wallet write protections. The marketplace will not load campaign data until the migration is applied.
 
+If an existing project reports `42P17 infinite recursion detected in policy for relation "user_roles"`, run `supabase/migrations/20261015_fix_user_roles_recursion.sql` in the Supabase SQL Editor. This focused repair replaces self-querying role policies with a `SECURITY DEFINER` helper; it is safe to rerun and does not require rerunning `schema.sql`.
+
 To grant the first administrator, run this in the Supabase SQL editor after replacing the email:
 
 ```sql
