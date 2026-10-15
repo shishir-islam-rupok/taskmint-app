@@ -66,14 +66,14 @@ export default async function AdvertiserPage({
                 <span className="text-xs text-[#839187]">{profile?.business_name || user.email}</span>
             </section>
 
-            {params.error ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}
-            {profileError ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm leading-6 text-[#f0b9b1]">Provider tables are missing. In Supabase Dashboard → SQL Editor, run <code>supabase/schema.sql</code> once if the base schema has not been installed, then run <code>supabase/migrations/20261014_campaign_marketplace.sql</code>. Details: {profileError.message}</div> : null}
-            {params.profile ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Provider profile submitted. Campaigns remain in draft until reviewed.</div> : null}
-            {params.campaign ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Campaign draft created. It will not appear to earners until it is approved and fully funded.</div> : null}
-            {params.funding ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Funding request submitted for manual verification.</div> : null}
-            {params.review ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/[0.07] px-4 py-3 text-sm text-[#d6f5a4]">Submission {params.review} and wallet status updated.</div> : null}
-            {campaignsResult.error ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">Could not load campaigns: {campaignsResult.error.message}</div> : null}
-            {fundingResult.error ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/[0.08] px-4 py-3 text-sm text-[#f0b9b1]">Could not load campaign funding status: {fundingResult.error.message}</div> : null}
+            {params.error ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}
+            {profileError ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm leading-6 text-[#f0b9b1]">Provider tables are missing. In Supabase Dashboard → SQL Editor, run <code>supabase/schema.sql</code> once if the base schema has not been installed, then run <code>supabase/migrations/20261014_campaign_marketplace.sql</code>. Details: {profileError.message}</div> : null}
+            {params.profile ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/7 px-4 py-3 text-sm text-[#d6f5a4]">Provider profile submitted. Campaigns remain in draft until reviewed.</div> : null}
+            {params.campaign ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/7 px-4 py-3 text-sm text-[#d6f5a4]">Campaign draft created. It will not appear to earners until it is approved and fully funded.</div> : null}
+            {params.funding ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/7 px-4 py-3 text-sm text-[#d6f5a4]">Funding request submitted for manual verification.</div> : null}
+            {params.review ? <div role="status" className="mt-5 border border-[#c9f36a]/25 bg-[#c9f36a]/7 px-4 py-3 text-sm text-[#d6f5a4]">Submission {params.review} and wallet status updated.</div> : null}
+            {campaignsResult.error ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">Could not load campaigns: {campaignsResult.error.message}</div> : null}
+            {fundingResult.error ? <div role="alert" className="mt-5 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">Could not load campaign funding status: {fundingResult.error.message}</div> : null}
 
             <section className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
@@ -95,7 +95,7 @@ export default async function AdvertiserPage({
                 </section>
             ) : (
                 <>
-                    <div className="mt-6 flex flex-col gap-3 border border-[#c9f36a]/20 bg-[#c9f36a]/[0.05] px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-[#cbd8bf]">Provider review: <span className="font-semibold capitalize text-white">{profile.review_status}</span>. Campaigns require approval and verified prepaid funding before they go live.</p><p className="text-xs text-[#9aa99f]">Profile: {profile.contact_email}</p></div>
+                    <div className="mt-6 flex flex-col gap-3 border border-[#c9f36a]/20 bg-[#c9f36a]/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-[#cbd8bf]">Provider review: <span className="font-semibold capitalize text-white">{profile.review_status}</span>. Campaigns require approval and verified prepaid funding before they go live.</p><p className="text-xs text-[#9aa99f]">Profile: {profile.contact_email}</p></div>
 
                     <section className="mt-8 grid items-start gap-8 xl:grid-cols-[1fr_0.9fr]">
                         <div>
@@ -106,7 +106,7 @@ export default async function AdvertiserPage({
                                 const funded = paid >= Number(campaign.budget_minor);
                                 const fundingRemaining = Math.max(0, Number(campaign.budget_minor) - paid - pending);
                                 return <article key={campaign.id} className="py-5 sm:px-2">
-                                    <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-white">{campaign.title}</h3><p className="mt-1 text-xs text-[#839187]">{campaign.category} · {campaign.slot_count} slots · ৳{campaign.reward_minor} per completion</p></div><span className="rounded-sm bg-white/[0.06] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#bdc9be]">{campaign.review_status === "approved" && campaign.state === "active" ? "Live" : campaign.review_status}</span></div>
+                                    <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-white">{campaign.title}</h3><p className="mt-1 text-xs text-[#839187]">{campaign.category} · {campaign.slot_count} slots · ৳{campaign.reward_minor} per completion</p></div><span className="rounded-sm bg-white/6 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-[#bdc9be]">{campaign.review_status === "approved" && campaign.state === "active" ? "Live" : campaign.review_status}</span></div>
                                     <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-[#9aa99f]"><span>Budget: ৳{Number(campaign.budget_minor).toLocaleString("en-BD")}</span><span>Funding: {funded ? "Verified" : `৳${paid.toLocaleString("en-BD")} of ৳${Number(campaign.budget_minor).toLocaleString("en-BD")}`}</span><span>{campaign.task_submissions?.length ?? 0} submissions</span></div>
                                     {!funded && campaign.state === "draft" && fundingRemaining > 0 ? <form action={submitCampaignFundingRequestAction} className="mt-4 grid gap-2 border border-white/10 bg-[#0d1915] p-3 sm:grid-cols-[1fr_1fr_110px_auto] sm:items-end">
                                         <input type="hidden" name="campaignId" value={campaign.id} />
@@ -121,7 +121,7 @@ export default async function AdvertiserPage({
                                         <p className="mt-2 whitespace-pre-wrap text-sm leading-5 text-[#b8c5b9]">{submission.proof_text || "No completion note supplied."}</p>
                                         {submission.status === "submitted" ? <div className="mt-4 flex flex-wrap gap-2">
                                             <form action={reviewCampaignSubmissionAction}><input type="hidden" name="submissionId" value={submission.id} /><input type="hidden" name="decision" value="approved" /><button type="submit" className="rounded-md bg-[#c9f36a] px-3 py-2 text-xs font-bold text-[#17210d] transition hover:bg-[#dcff86]">Approve reward</button></form>
-                                            <form action={reviewCampaignSubmissionAction} className="flex min-w-0 flex-1 gap-2"><input type="hidden" name="submissionId" value={submission.id} /><input type="hidden" name="decision" value="rejected" /><input name="reason" maxLength={1000} placeholder="Reason (optional)" className="min-w-0 flex-1 rounded-md border border-white/10 bg-[#111e19] px-3 py-2 text-xs text-white placeholder:text-[#748278]" /><button type="submit" className="rounded-md border border-[#e88d82]/30 px-3 py-2 text-xs font-semibold text-[#f0b9b1] hover:bg-[#e88d82]/[0.08]">Reject</button></form>
+                                            <form action={reviewCampaignSubmissionAction} className="flex min-w-0 flex-1 gap-2"><input type="hidden" name="submissionId" value={submission.id} /><input type="hidden" name="decision" value="rejected" /><input name="reason" maxLength={1000} placeholder="Reason (optional)" className="min-w-0 flex-1 rounded-md border border-white/10 bg-[#111e19] px-3 py-2 text-xs text-white placeholder:text-[#748278]" /><button type="submit" className="rounded-md border border-[#e88d82]/30 px-3 py-2 text-xs font-semibold text-[#f0b9b1] hover:bg-[#e88d82]/8">Reject</button></form>
                                         </div> : submission.rejection_reason ? <p className="mt-2 text-xs text-[#d7aaa3]">Review note: {submission.rejection_reason}</p> : null}
                                     </div>)}</div> : null}
                                 </article>;

@@ -36,7 +36,7 @@ export default async function DashboardPage() {
 
     return (
         <main className="mx-auto min-h-screen w-full max-w-7xl px-5 py-8 sm:px-8 sm:py-12">
-            <div className="mb-9 flex items-center justify-between gap-4 border-b border-white/[0.1] pb-6">
+            <div className="mb-9 flex items-center justify-between gap-4 border-b border-white/10 pb-6">
                 <div>
                     <Link href="/" className="mb-6 flex w-fit items-center gap-2 text-sm font-extrabold tracking-tight text-white"><span className="grid size-7 place-items-center rounded-md bg-[#c9f36a] text-[10px] font-black text-[#17210d]">T</span>taskmint</Link>
                     <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">Your workspace</p>
@@ -46,7 +46,7 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-2">
                     {isAdmin ? <Link href="/admin/campaigns" className="rounded-lg border border-[#c9f36a]/25 px-3 py-2 text-sm font-semibold text-[#d6f5a4] hover:bg-[#c9f36a]/10">Campaign ops</Link> : null}
                     <form action={logoutAction}>
-                        <button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/[0.04] hover:text-white">Sign out</button>
+                        <button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/4 hover:text-white">Sign out</button>
                     </form>
                 </div>
             </div>
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
                     { label: "Approved rewards", value: formatMoney(wallet.approved_minor), hint: "Approved in your wallet" },
                     { label: "Account status", value: claims.email_verified ? "Verified" : "Pending", hint: claims.email_verified ? "Email confirmed" : "Confirm your email" },
                 ].map((item) => (
-                    <article key={item.label} className={`border p-5 ${item.accent ? "border-[#c9f36a]/30 bg-[#c9f36a]/[0.06]" : "border-white/[0.1] bg-[#111e19]"}`}>
+                    <article key={item.label} className={`border p-5 ${item.accent ? "border-[#c9f36a]/30 bg-[#c9f36a]/6" : "border-white/10 bg-[#111e19]"}`}>
                         <p className="text-xs font-medium text-[#9aa99f]">{item.label}</p>
                         <p className={`mt-4 text-2xl font-semibold tracking-tight ${item.accent ? "text-[#d9f7a0]" : "text-white"}`}>{item.value}</p>
                         <p className="mt-1.5 text-xs text-[#748278]">{item.hint}</p>
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
             </section>
 
             <section className="mt-8 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                <div className="border border-white/[0.1] bg-[#111e19] p-6 sm:p-8">
+                <div className="border border-white/10 bg-[#111e19] p-6 sm:p-8">
                     <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#c9f36a]">Next step</p>
@@ -76,12 +76,12 @@ export default async function DashboardPage() {
                         </div>
                         <div className="flex shrink-0 flex-wrap gap-2">
                             <Link href="/adsincome" className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#c9f36a] px-4 py-3 text-sm font-bold text-[#17210d] transition hover:-translate-y-0.5 hover:bg-[#dcff86]">Earn tasks <span aria-hidden="true">↗</span></Link>
-                            <Link href="/advertiser" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.04]">Post a task <span aria-hidden="true">↗</span></Link>
+                            <Link href="/advertiser" className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/15 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/4">Post a task <span aria-hidden="true">↗</span></Link>
                         </div>
                     </div>
                 </div>
-                <div className="border border-white/[0.1] bg-[#111e19] p-6 sm:p-8">
-                    <div className="flex items-center justify-between gap-3"><h2 className="text-base font-semibold text-white">Account details</h2><span className="rounded-full border border-[#c9f36a]/20 bg-[#c9f36a]/[0.07] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#d6f5a4]">Secure</span></div>
+                <div className="border border-white/10 bg-[#111e19] p-6 sm:p-8">
+                    <div className="flex items-center justify-between gap-3"><h2 className="text-base font-semibold text-white">Account details</h2><span className="rounded-full border border-[#c9f36a]/20 bg-[#c9f36a]/7 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[#d6f5a4]">Secure</span></div>
                     <dl className="mt-5 space-y-4">
                         <div><dt className="text-xs text-[#748278]">Email address</dt><dd className="mt-1 break-all text-sm text-[#e2e9dc]">{claims.email}</dd></div>
                         <div><dt className="text-xs text-[#748278]">Verification</dt><dd className="mt-1 text-sm text-[#e2e9dc]">{claims.email_verified ? "Email verified" : "Awaiting confirmation"}</dd></div>

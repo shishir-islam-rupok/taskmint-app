@@ -49,13 +49,13 @@ export function CampaignTimer({
                     href={destinationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-4 inline-flex rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/[0.04]"
+                    className="mt-4 inline-flex rounded-lg border border-white/15 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/4"
                 >
                     Open sponsor page <span className="ml-2" aria-hidden="true">↗</span>
                 </a>
             ) : null}
 
-            <form action={completeCampaignSessionAction} className="mt-5 border-t border-white/[0.08] pt-5">
+            <form action={completeCampaignSessionAction} className="mt-5 border-t border-white/8 pt-5">
                 <input type="hidden" name="sessionId" value={sessionId} />
                 <label htmlFor="proofText" className="mb-2 block text-sm font-medium text-[#dbe4d7]">
                     Completion note for campaign review
