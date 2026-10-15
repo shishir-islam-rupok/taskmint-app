@@ -34,6 +34,23 @@ Providers register at `/advertiser`, create a draft, and submit a transfer refer
 
 Funding is currently reconciled manually; no payment gateway is configured. The marketplace is for TaskMint-owned sponsored activities, not incentivized impressions or clicks on Google AdSense, Adsterra, or other third-party ad-network units. Do not embed or reward ad-network clicks/views.
 
+## Adsterra Smartlink Setup
+
+The optional Adsterra button is a voluntary external Smartlink and never awards TaskMint rewards. Adsterra's [publisher terms](https://adsterra.com/publishers-terms-managed/) prohibit using incentives to increase impression, click, or action volumes (section 6(d)(iv)). Its [Smartlink documentation](https://adsterra.com/smartlink-ads/) says to copy the active URL from the Publisher account. No completion callback or verified conversion postback is configured here, so ad views, clicks, conversions, and Smartlink visits cannot complete or reward a TaskMint task.
+
+After Adsterra approves the TaskMint serving domain and activates the Smartlink, set these server-side values in `.env.local`:
+
+```env
+ADSTERRA_SMARTLINK_URL=
+ADSTERRA_PUBLISHER_SITE_APPROVED=false
+```
+
+The URL must be the exact HTTPS Smartlink copied from the account. The approval flag should remain `false` until Adsterra approves the site's domain. Restart the dev server after changing environment values. Visit `/adsincome` while signed in and use “View Sponsored Offer”; no wallet or campaign state changes should occur.
+
+Banner, Native, Social Bar, and other display units are intentionally not loaded from their IDs alone. Adsterra supplies the exact publisher tag in its dashboard after site approval; tags must not be reconstructed or modified. Popunder is disabled. Add official tags only after confirming the exact unit code and the approved domain, and keep those placements separate from any TaskMint campaign actions.
+
+Run `npm test` for Adsterra configuration and reward-eligibility checks. Callback-signature and duplicate-callback tests are not applicable because this integration creates no Adsterra callback endpoint and grants no Adsterra-linked reward.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More

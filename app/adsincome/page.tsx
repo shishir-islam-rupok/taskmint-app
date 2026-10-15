@@ -5,6 +5,9 @@ import { getUserDashboardData } from "@/lib/supabase/earnings";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CampaignTimer } from "./campaign-timer";
 import { startCampaignSessionAction } from "./actions";
+import { AdsterraSponsoredOfferButton } from "./adsterra-sponsored-offer";
+import { AdsterraUnitCatalog } from "./adsterra-unit-catalog";
+import { resolveAdsterraConfig } from "@/lib/ads/adsterra-config.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,12 @@ export default async function AdsIncomePage({
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect("/login");
+
+    const adsterra = resolveAdsterraConfig({
+        authenticated: Boolean(user),
+        publisherSiteApproved: process.env.ADSTERRA_PUBLISHER_SITE_APPROVED === "true",
+        smartlinkUrl: process.env.ADSTERRA_SMARTLINK_URL,
+    });
 
     const [dashboard, campaignResult, submissionResult] = await Promise.all([
         getUserDashboardData(),
@@ -116,6 +125,25 @@ export default async function AdsIncomePage({
             <div className="mt-6 border border-[#c9f36a]/20 bg-[#c9f36a]/6 px-4 py-3 text-xs leading-5 text-[#cbd8bf]">
                 These are TaskMint-sponsored activities, not paid impressions or clicks on AdSense/Adsterra units. Follow each campaign brief and submit a note for review.
             </div>
+
+            <section className="mt-6 grid items-start gap-6 lg:grid-cols-[1fr_auto]">
+                <div className="border border-white/10 bg-[#111e19] p-5 sm:p-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#c9f36a]">Adsterra Smartlink · unit 31739173</p>
+                    <h2 className="mt-2 text-xl font-semibold text-white">Optional sponsored offer</h2>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-[#9aa99f]">Open an external Adsterra offer only if you choose to. It is not a TaskMint task: clicks, views, and conversions do not create a TaskMint session or earn wallet rewards.</p>
+                    <div className="mt-4">
+                        <AdsterraSponsoredOfferButton smartlinkUrl={adsterra.smartlinkUrl} disabledReason={adsterra.reason} />
+                    </div>
+                    <p className="mt-4 text-xs leading-5 text-[#839187]">The Smartlink is account-specific and opens only after your click. <Link href="/privacy" className="text-[#d6f5a4] underline decoration-[#c9f36a]/40 underline-offset-4">Privacy disclosure</Link> · <a href="https://adsterra.com/publishers-terms-managed/" target="_blank" rel="noopener noreferrer" className="text-[#d6f5a4] underline decoration-[#c9f36a]/40 underline-offset-4">Adsterra publisher terms</a></p>
+                </div>
+                <div className="border border-white/10 bg-[#111e19] p-5 sm:p-6">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#839187]">Reward eligibility</p>
+                    <p className="mt-2 text-sm font-semibold text-white">No Adsterra ad reward</p>
+                    <p className="mt-2 max-w-sm text-xs leading-5 text-[#9aa99f]">Adsterra’s publisher terms prohibit incentives that increase impressions, clicks, or actions. Its Smartlink documentation describes monetization by ad views and conversions, not a verified TaskMint completion callback.</p>
+                </div>
+            </section>
+
+            <div className="mt-4"><AdsterraUnitCatalog /></div>
 
             {params.submitted ? <div role="status" className="mt-4 border border-[#c9f36a]/25 bg-[#c9f36a]/7 px-4 py-3 text-sm text-[#d6f5a4]">Submission received. The reward is pending provider review.</div> : null}
             {params.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}
