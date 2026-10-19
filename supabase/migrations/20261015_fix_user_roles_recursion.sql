@@ -35,9 +35,6 @@ drop policy if exists "Admins can manage campaign funding" on public.campaign_fu
 create policy "Admin can access all profiles" on public.profiles
   for all using (public.current_user_has_role(array['admin']::text[]));
 
-create policy "Admins manage roles" on public.user_roles
-  for all using (public.current_user_has_role(array['admin']::text[]));
-
 create policy "Admins and reviewers can access review queue" on public.task_submissions
   for select using (public.current_user_has_role(array['reviewer', 'admin']::text[]));
 

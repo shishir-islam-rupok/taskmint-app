@@ -266,9 +266,6 @@ create policy "Admin can access all profiles" on public.profiles
 create policy "Users can read their own roles" on public.user_roles
   for select using (user_id = auth.uid());
 
-create policy "Admins manage roles" on public.user_roles
-  for all using (public.current_user_has_role(array['admin']::text[]));
-
 create policy "Authenticated users can read their own submissions" on public.task_submissions
   for select using (user_id = auth.uid());
 
