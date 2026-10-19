@@ -1,19 +1,19 @@
 import { ADSTERRA_UNITS } from "@/lib/ads/adsterra-config.mjs";
 
 function integrationLabel(integration: (typeof ADSTERRA_UNITS)[number]["integration"]) {
-    if (integration === "disabled") return "Not loaded";
-    if (integration === "smartlink-click-only") return "Button only · no reward";
-    return "Official publisher tag required";
+    if (integration === "disabled") return "লোড করা হয়নি";
+    if (integration === "smartlink-click-only") return "শুধু বাটন · পুরস্কার নেই";
+    return "অফিশিয়াল প্রকাশক ট্যাগ প্রয়োজন";
 }
 
 export function AdsterraUnitCatalog() {
     return (
         <details className="border border-white/10 bg-[#111e19] p-5 sm:p-6">
             <summary className="cursor-pointer list-none text-sm font-semibold text-white marker:hidden">
-                Standard ad placements <span className="ml-2 text-xs font-normal text-[#839187]">Separate from task rewards</span>
+                সাধারণ বিজ্ঞাপনের স্থান <span className="ml-2 text-xs font-normal text-[#839187]">কাজের পুরস্কার থেকে আলাদা</span>
             </summary>
             <p className="mt-3 max-w-3xl text-xs leading-5 text-[#9aa99f]">
-                Ad unit IDs are not executable ad tags. Standard banners, native ads, and the social bar remain unloaded until you copy the exact publisher tag from your Adsterra account. Tags must remain unchanged and must not be placed in an iframe.
+                বিজ্ঞাপন ইউনিটের আইডি ব্যবহারযোগ্য বিজ্ঞাপন ট্যাগ নয়। Adsterra অ্যাকাউন্ট থেকে আসল প্রকাশক ট্যাগ কপি না করা পর্যন্ত ব্যানার, নেটিভ বিজ্ঞাপন এবং Social Bar লোড হবে না। ট্যাগ অপরিবর্তিত রাখতে হবে এবং iframe-এ রাখা যাবে না।
             </p>
             <ul className="mt-4 divide-y divide-white/10 border-y border-white/10">
                 {ADSTERRA_UNITS.map((unit) => (
@@ -23,7 +23,7 @@ export function AdsterraUnitCatalog() {
                     </li>
                 ))}
             </ul>
-            <p className="mt-3 text-xs leading-5 text-[#839187]">Popunder is intentionally disabled. No Adsterra format in this integration is eligible for TaskMint rewards.</p>
+            <p className="mt-3 text-xs leading-5 text-[#839187]">Popunder ইচ্ছাকৃতভাবে বন্ধ রাখা হয়েছে। এই ইন্টিগ্রেশনে Adsterra-এর কোনো ফরম্যাটেই TaskMint পুরস্কার প্রযোজ্য নয়।</p>
         </details>
     );
 }

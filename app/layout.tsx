@@ -13,14 +13,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TaskMint | Small tasks, real progress",
-  description: "Find online activities, track your rewards, and manage your account securely with TaskMint.",
+  title: "TaskMint | ছোট কাজ, বাস্তব অগ্রগতি",
+  description: "TaskMint-এ অনলাইন কাজ খুঁজুন, আয় দেখুন এবং নিরাপদে অ্যাকাউন্ট পরিচালনা করুন।",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="bn"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

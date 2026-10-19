@@ -26,7 +26,7 @@ export function AdsterraSponsoredOfferButton({
         try {
             const offerWindow = window.open("about:blank", "_blank");
             if (!offerWindow) {
-                setPopupError("Your browser blocked the new tab. Allow popups for TaskMint, then try again.");
+                setPopupError("ব্রাউজার নতুন ট্যাবটি আটকে দিয়েছে। TaskMint-এর জন্য পপ-আপ চালু করে আবার চেষ্টা করুন।");
                 setState("error");
                 return;
             }
@@ -35,14 +35,14 @@ export function AdsterraSponsoredOfferButton({
             offerWindow.location.replace(smartlinkUrl);
             window.setTimeout(() => setState("opened"), 200);
         } catch {
-            setPopupError("The sponsored offer could not be opened. Please try again.");
+            setPopupError("স্পন্সর অফারটি খোলা যায়নি। আবার চেষ্টা করুন।");
             setState("error");
         }
     }
 
     const statusMessage = popupError
-        || (state === "opening" ? "Opening the offer in a new tab…" : null)
-        || (state === "opened" ? "Offer opened in a new tab. This visit does not earn a TaskMint reward." : disabledReason);
+        || (state === "opening" ? "নতুন ট্যাবে অফার খোলা হচ্ছে…" : null)
+        || (state === "opened" ? "নতুন ট্যাবে অফার খোলা হয়েছে। এই ভিজিটে TaskMint পুরস্কার পাওয়া যাবে না।" : disabledReason);
 
     return (
         <div>
@@ -53,7 +53,7 @@ export function AdsterraSponsoredOfferButton({
                 aria-busy={state === "opening"}
                 className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#c9f36a] px-4 py-3 text-sm font-bold text-[#17210d] transition hover:bg-[#dcff86] disabled:cursor-not-allowed disabled:opacity-45"
             >
-                {state === "opening" ? "Opening offer…" : state === "opened" ? "Offer opened" : "View Sponsored Offer"}
+                {state === "opening" ? "অফার খোলা হচ্ছে…" : state === "opened" ? "অফার খোলা হয়েছে" : "স্পন্সর অফার দেখুন"}
                 {state === "ready" ? <span aria-hidden="true">↗</span> : null}
             </button>
             {statusMessage ? (

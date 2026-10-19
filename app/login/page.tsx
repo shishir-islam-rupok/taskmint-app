@@ -1,22 +1,53 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const oauthProviders = ["Google", "Apple"] as const;
 
-export default function LoginPage() {
+function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
-    const [mode, setMode] = useState<"signin" | "signup">("signin");
+    const [mode, setMode] = useState<"signin" | "signup">(searchParams.get("mode") === "signup" ? "signup" : "signin");
     const configured = isSupabaseConfigured();
+    const [checkingSession, setCheckingSession] = useState(configured);
+
+    useEffect(() => {
+        const client = createClient();
+        if (!client) {
+            return;
+        }
+
+        client.auth.getUser()
+            .then(({ data, error: sessionError }) => {
+                if (sessionError) {
+                    setError(`সেশন যাচাই করা যায়নি: ${sessionError.message}`);
+                    setCheckingSession(false);
+                    return;
+                }
+
+                if (data.user) {
+                    router.replace("/dashboard");
+                    router.refresh();
+                    return;
+                }
+
+                setCheckingSession(false);
+            })
+            .catch((sessionError: unknown) => {
+                const message = sessionError instanceof Error ? sessionError.message : "অজানা ত্রুটি";
+                setError(`সেশন যাচাই করা যায়নি: ${message}`);
+                setCheckingSession(false);
+            });
+    }, [router]);
 
     async function handleAuthSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -27,7 +58,7 @@ export default function LoginPage() {
         const client = createClient();
 
         if (!client || !configured) {
-            setError("Supabase is not configured yet. Add your project URL and key to continue.");
+            setError("Supabase এখনো সেটআপ করা হয়নি। চালিয়ে যেতে প্রজেক্ট URL ও key যোগ করুন।");
             setLoading(false);
             return;
         }
@@ -42,15 +73,16 @@ export default function LoginPage() {
             });
 
             if (signUpError) {
-                setError(signUpError.message);
+                setError(`অ্যাকাউন্ট তৈরি করা যায়নি: ${signUpError.message}`);
                 setLoading(false);
                 return;
             }
 
             if (data.user && !data.session) {
-                setSuccess("Account created. Check your email to confirm your sign-up.");
+                setSuccess("অ্যাকাউন্ট তৈরি হয়েছে। সাইন আপ নিশ্চিত করতে ইমেইল দেখুন।");
             } else {
-                router.push("/dashboard");
+                router.replace("/dashboard");
+                router.refresh();
             }
 
             setLoading(false);
@@ -63,19 +95,20 @@ export default function LoginPage() {
         });
 
         if (signInError) {
-            setError(signInError.message);
+            setError(`লগ ইন করা যায়নি: ${signInError.message}`);
             setLoading(false);
             return;
         }
 
-        router.push("/dashboard");
+        router.replace("/dashboard");
+        router.refresh();
     }
 
     async function handleProviderLogin(provider: (typeof oauthProviders)[number]) {
         const client = createClient();
 
         if (!client || !configured) {
-            setError("Supabase is not configured yet. Add your project URL and key to continue.");
+            setError("Supabase এখনো সেটআপ করা হয়নি। চালিয়ে যেতে প্রজেক্ট URL ও key যোগ করুন।");
             return;
         }
 
@@ -87,8 +120,12 @@ export default function LoginPage() {
         });
 
         if (oauthError) {
-            setError(oauthError.message);
+            setError(`লগ ইন করা যায়নি: ${oauthError.message}`);
         }
+    }
+
+    if (checkingSession) {
+        return <main className="grid min-h-screen place-items-center px-5 text-sm text-[#a9b5aa]" role="status">আপনার সাইন-ইন অবস্থা যাচাই করা হচ্ছে…</main>;
     }
 
     return (
@@ -100,18 +137,18 @@ export default function LoginPage() {
                     <Link href="/" className="relative flex w-fit items-center gap-2.5 text-base font-extrabold tracking-tight text-white"><span className="grid size-8 place-items-center rounded-lg bg-[#c9f36a] text-xs font-black text-[#17210d]">T</span>taskmint</Link>
                     <div className="relative mt-16 sm:mt-24">
                         <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[#c9f36a]">
-                            Your work, in focus
+                            আপনার কাজ, আপনার নিয়ন্ত্রণে
                         </p>
-                        <h1 className="mt-5 max-w-sm text-4xl font-semibold leading-tight tracking-[-0.03em] text-white sm:text-5xl">A better view of your online work.</h1>
+                        <h1 className="mt-5 max-w-sm text-4xl font-semibold leading-tight tracking-[-0.03em] text-white sm:text-5xl">অনলাইন কাজ ও আয়ের সহজ হিসাব।</h1>
                         <p className="mt-4 max-w-md text-sm leading-7 text-[#a9b5aa] sm:text-base">
-                            Sign in to find activities, follow your rewards, and manage your account from one secure workspace.
+                            কাজ খুঁজতে, পুরস্কারের অবস্থা দেখতে এবং নিরাপদ কর্মক্ষেত্র থেকে অ্যাকাউন্ট পরিচালনা করতে লগ ইন করুন।
                         </p>
 
                         <div className="mt-9 space-y-3">
                             {[
-                                "Private, authenticated account access",
-                                "Clear balance and reward status",
-                                "Activities with upfront reward details",
+                                "নিরাপদ ও ব্যক্তিগত অ্যাকাউন্ট",
+                                "ব্যালেন্স ও পুরস্কারের স্পষ্ট হিসাব",
+                                "কাজ শুরুর আগেই পুরস্কারের তথ্য",
                             ].map((item) => (
                                 <div key={item} className="flex items-center gap-3 border-b border-white/8 py-3 text-sm text-[#d5ded2]">
                                     <div className="grid size-5 shrink-0 place-items-center rounded-full border border-[#c9f36a]/35 text-[10px] text-[#c9f36a]">✓</div>
@@ -120,7 +157,7 @@ export default function LoginPage() {
                             ))}
                         </div>
                     </div>
-                    <p className="relative mt-auto pt-12 text-xs text-[#839187]">Secure sign-in powered by Supabase</p>
+                    <p className="relative mt-auto pt-12 text-xs text-[#839187]">Supabase-এর মাধ্যমে নিরাপদ লগ ইন</p>
                 </div>
 
                 <div className="order-1 p-7 sm:p-10 lg:order-2 lg:p-12">
@@ -130,19 +167,19 @@ export default function LoginPage() {
                             onClick={() => setMode("signin")}
                             className={`flex-1 rounded-md px-3 py-2.5 text-sm font-semibold transition ${mode === "signin" ? "bg-[#c9f36a] text-[#17210d]" : "text-[#a9b5aa] hover:text-white"}`}
                         >
-                            Sign in
+                            লগ ইন
                         </button>
                         <button
                             type="button"
                             onClick={() => setMode("signup")}
                             className={`flex-1 rounded-md px-3 py-2.5 text-sm font-semibold transition ${mode === "signup" ? "bg-[#c9f36a] text-[#17210d]" : "text-[#a9b5aa] hover:text-white"}`}
                         >
-                            Create account
+                            নতুন অ্যাকাউন্ট
                         </button>
                     </div>
 
                     <h2 className="mt-8 text-3xl font-semibold tracking-tight text-white">
-                        {mode === "signin" ? "Access your account" : "Create your account"}
+                        {mode === "signin" ? "আপনার অ্যাকাউন্টে প্রবেশ করুন" : "নতুন অ্যাকাউন্ট খুলুন"}
                     </h2>
 
                     <form onSubmit={handleAuthSubmit} className="mt-6 space-y-4">
@@ -150,7 +187,8 @@ export default function LoginPage() {
                             type="email"
                             value={email}
                             onChange={(event) => setEmail(event.target.value)}
-                            placeholder="you@example.com"
+                            placeholder="আপনার ইমেইল"
+                            aria-label="ইমেইল ঠিকানা"
                             className="w-full rounded-lg border border-white/10 bg-[#0d1915] px-4 py-3.5 text-white placeholder:text-[#748278] outline-none transition focus:border-[#c9f36a]/70"
                             required
                         />
@@ -159,7 +197,8 @@ export default function LoginPage() {
                             type="password"
                             value={password}
                             onChange={(event) => setPassword(event.target.value)}
-                            placeholder="Password"
+                            placeholder="পাসওয়ার্ড"
+                            aria-label="পাসওয়ার্ড"
                             className="w-full rounded-lg border border-white/10 bg-[#0d1915] px-4 py-3.5 text-white placeholder:text-[#748278] outline-none transition focus:border-[#c9f36a]/70"
                             required
                             minLength={6}
@@ -182,7 +221,7 @@ export default function LoginPage() {
                             disabled={loading}
                             className="w-full rounded-lg bg-[#c9f36a] px-4 py-3.5 text-sm font-bold text-[#17210d] transition hover:bg-[#dcff86] disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            {loading ? (mode === "signin" ? "Signing in..." : "Creating account...") : mode === "signin" ? "Sign in with email" : "Create account"}
+                            {loading ? (mode === "signin" ? "লগ ইন হচ্ছে…" : "অ্যাকাউন্ট তৈরি হচ্ছে…") : mode === "signin" ? "ইমেইল দিয়ে লগ ইন" : "অ্যাকাউন্ট তৈরি করুন"}
                         </button>
                     </form>
 
@@ -194,18 +233,26 @@ export default function LoginPage() {
                                 type="button"
                                 onClick={() => handleProviderLogin(provider)}
                             >
-                                Continue with {provider}
+                                {provider} দিয়ে চালিয়ে যান
                             </button>
                         ))}
                     </div>
 
                     <div className="mt-6 border-t border-white/8 pt-4 text-xs leading-5 text-[#839187]">
                         {configured
-                            ? "Supabase auth is enabled for live sign-in and account creation."
-                            : "Supabase env values are not configured yet. Add your project URL and key to enable authentication."}
+                            ? "Supabase লগ ইন ও অ্যাকাউন্ট তৈরির জন্য সক্রিয় আছে।"
+                            : "Supabase-এর URL ও key সেট করা নেই। লগ ইন চালু করতে এগুলো যোগ করুন।"}
                     </div>
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<main className="grid min-h-screen place-items-center px-5 text-sm text-[#a9b5aa]" role="status">আপনার সাইন-ইন অবস্থা যাচাই করা হচ্ছে…</main>}>
+            <LoginForm />
+        </Suspense>
     );
 }
