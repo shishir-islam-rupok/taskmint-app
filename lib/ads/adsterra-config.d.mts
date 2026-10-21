@@ -1,7 +1,7 @@
 export type AdsterraUnit = {
     id: string;
     format: string;
-    integration: "publisher-tag-required" | "smartlink-click-only" | "disabled";
+    integration: "publisher-tag-installed" | "smartlink-click-only";
     rewardEligible: false;
 };
 

@@ -68,30 +68,17 @@ export async function createCampaignAction(formData: FormData) {
     const supabase = await createServerSupabaseClient();
     if (!supabase) advertiserError("Supabase is not configured.");
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
+    if (!user) redirect("/login?next=%2Fadvertiser");
 
-    const { data: profile, error: profileError } = await supabase
-        .from("advertiser_profiles")
-        .select("id")
-        .eq("owner_user_id", user.id)
-        .maybeSingle();
-
-    if (profileError || !profile) advertiserError(profileError?.message || "Create a provider profile before posting a campaign.");
-
-    const { error } = await supabase.from("campaigns").insert({
-        advertiser_id: profile.id,
-        title,
-        category,
-        description,
-        instructions,
-        reward_minor: reward,
-        currency: "BDT",
-        slot_count: slots,
-        budget_minor: reward * slots,
-        watch_seconds: watchSeconds,
-        destination_url: destinationUrl.value,
-        state: "draft",
-        review_status: "pending",
+    const { error } = await supabase.rpc("create_advertiser_campaign", {
+        p_title: title,
+        p_category: category,
+        p_description: description,
+        p_instructions: instructions,
+        p_reward_minor: reward,
+        p_slot_count: slots,
+        p_watch_seconds: watchSeconds,
+        p_destination_url: destinationUrl.value,
     });
 
     if (error) advertiserError(error.message);

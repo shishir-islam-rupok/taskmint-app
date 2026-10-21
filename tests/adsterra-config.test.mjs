@@ -38,9 +38,10 @@ test("accepts an HTTPS Smartlink only for an authenticated user on an approved s
     assert.equal(result.smartlinkUrl, approvedConfig.smartlinkUrl);
 });
 
-test("every listed Adsterra unit is non-rewardable and Popunder stays disabled", () => {
+test("lists the supplied Adsterra placements without making any ad rewardable", () => {
     assert.equal(ADSTERRA_UNITS.length, 10);
     assert.ok(ADSTERRA_UNITS.every((unit) => unit.rewardEligible === false));
-    assert.equal(ADSTERRA_UNITS.find((unit) => unit.id === "31739189")?.integration, "disabled");
-    assert.equal(ADSTERRA_UNITS.find((unit) => unit.id === "31739173")?.integration, "smartlink-click-only");
+    assert.equal(ADSTERRA_UNITS.find((unit) => unit.id === "96771d31781cc5c793b53fcf9039883f")?.format, "Banner 728x90");
+    assert.equal(ADSTERRA_UNITS.find((unit) => unit.id === "e66f50293ab0fc019aa1d1cf818a44ab")?.integration, "smartlink-click-only");
+    assert.equal(ADSTERRA_UNITS.find((unit) => unit.id === "smartlink")?.integration, "smartlink-click-only");
 });

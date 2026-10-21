@@ -8,9 +8,22 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 const oauthProviders = ["Google", "Apple"] as const;
 
+function getSafeNextPath(value: string | null) {
+    if (!value) return "/dashboard";
+
+    try {
+        const destination = new URL(value, "https://taskmint.local");
+        if (destination.origin !== "https://taskmint.local") return "/dashboard";
+        return `${destination.pathname}${destination.search}${destination.hash}`;
+    } catch {
+        return "/dashboard";
+    }
+}
+
 function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const nextPath = getSafeNextPath(searchParams.get("next"));
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -35,7 +48,7 @@ function LoginForm() {
                 }
 
                 if (data.user) {
-                    router.replace("/dashboard");
+                    router.replace(nextPath);
                     router.refresh();
                     return;
                 }
@@ -47,7 +60,7 @@ function LoginForm() {
                 setError(`সেশন যাচাই করা যায়নি: ${message}`);
                 setCheckingSession(false);
             });
-    }, [router]);
+    }, [nextPath, router]);
 
     async function handleAuthSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -68,7 +81,7 @@ function LoginForm() {
                 email,
                 password,
                 options: {
-                    emailRedirectTo: `${window.location.origin}/auth/callback?next=%2Fdashboard`,
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
                 },
             });
 
@@ -81,7 +94,7 @@ function LoginForm() {
             if (data.user && !data.session) {
                 setSuccess("অ্যাকাউন্ট তৈরি হয়েছে। সাইন আপ নিশ্চিত করতে ইমেইল দেখুন।");
             } else {
-                router.replace("/dashboard");
+                router.replace(nextPath);
                 router.refresh();
             }
 
@@ -100,7 +113,7 @@ function LoginForm() {
             return;
         }
 
-        router.replace("/dashboard");
+        router.replace(nextPath);
         router.refresh();
     }
 
@@ -115,7 +128,7 @@ function LoginForm() {
         const { error: oauthError } = await client.auth.signInWithOAuth({
             provider: provider.toLowerCase() as "google" | "apple",
             options: {
-                redirectTo: `${window.location.origin}/auth/callback?next=%2Fdashboard`,
+                redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextPath)}`,
             },
         });
 

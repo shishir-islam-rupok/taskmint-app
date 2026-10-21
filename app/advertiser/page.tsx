@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { logoutAction } from "@/lib/auth/actions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createAdvertiserProfileAction, createCampaignAction, reviewCampaignSubmissionAction, submitCampaignFundingRequestAction } from "./actions";
+import { CampaignSubmitButton } from "./campaign-submit-button";
 
 export const dynamic = "force-dynamic";
 
@@ -137,7 +138,7 @@ export default async function AdvertiserPage({
                             <div><label htmlFor="destinationUrl" className="mb-1.5 block text-xs font-medium text-[#dbe4d7]">স্পন্সরের পেজ <span className="text-[#748278]">(ঐচ্ছিক)</span></label><input id="destinationUrl" name="destinationUrl" type="url" placeholder="https://example.com" className="w-full rounded-md border border-white/10 bg-[#0d1915] px-3 py-2.5 text-sm text-white outline-none focus:border-[#c9f36a]/60" /></div>
                             <div className="grid grid-cols-3 gap-3"><div><label htmlFor="rewardBdt" className="mb-1.5 block text-xs font-medium text-[#dbe4d7]">প্রতি কাজে ৳</label><input id="rewardBdt" name="rewardBdt" type="number" required min={1} max={100000} step={1} className="w-full rounded-md border border-white/10 bg-[#0d1915] px-2.5 py-2.5 text-sm text-white outline-none focus:border-[#c9f36a]/60" /></div><div><label htmlFor="slotCount" className="mb-1.5 block text-xs font-medium text-[#dbe4d7]">কাজের সংখ্যা</label><input id="slotCount" name="slotCount" type="number" required min={1} max={10000} step={1} className="w-full rounded-md border border-white/10 bg-[#0d1915] px-2.5 py-2.5 text-sm text-white outline-none focus:border-[#c9f36a]/60" /></div><div><label htmlFor="watchSeconds" className="mb-1.5 block text-xs font-medium text-[#dbe4d7]">সময় (সেকেন্ড)</label><input id="watchSeconds" name="watchSeconds" type="number" required min={5} max={300} defaultValue={20} step={1} className="w-full rounded-md border border-white/10 bg-[#0d1915] px-2.5 py-2.5 text-sm text-white outline-none focus:border-[#c9f36a]/60" /></div></div>
                             <p className="text-xs leading-5 text-[#839187]">মোট বাজেট = পুরস্কার × কাজের সংখ্যা। বিজ্ঞাপন নেটওয়ার্কের ক্লিক উৎসাহিত করে বা গন্তব্য প্ল্যাটফর্মের শর্ত ভঙ্গ করে এমন কাজ পোস্ট করবেন না।</p>
-                            <button type="submit" className="w-full rounded-lg bg-[#c9f36a] px-4 py-3 text-sm font-bold text-[#17210d] transition hover:bg-[#dcff86]">ক্যাম্পেইনের খসড়া সংরক্ষণ</button>
+                            <CampaignSubmitButton />
                         </form>
                     </section>
                 </>

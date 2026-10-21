@@ -5,9 +5,15 @@ import { getSupabaseAnonKey, isSupabaseConfigured } from "@/lib/supabase/config"
 
 const protectedRoutes = ["/dashboard", "/wallet", "/advertiser", "/review", "/admin"];
 
+function loginRedirect(request: NextRequest) {
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
+    return NextResponse.redirect(loginUrl);
+}
+
 export async function proxy(request: NextRequest) {
     if (!isSupabaseConfigured()) {
-        return NextResponse.redirect(new URL("/login", request.url));
+        return loginRedirect(request);
     }
 
     let response = NextResponse.next({ request });
@@ -40,7 +46,7 @@ export async function proxy(request: NextRequest) {
     );
 
     if (isProtectedRoute && !verifiedClaims?.claims) {
-        const redirectResponse = NextResponse.redirect(new URL("/login", request.url));
+        const redirectResponse = loginRedirect(request);
         response.cookies.getAll().forEach(({ name, value, ...options }) => {
             redirectResponse.cookies.set(name, value, options);
         });

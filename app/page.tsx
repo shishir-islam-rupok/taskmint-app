@@ -42,6 +42,7 @@ export default async function Home() {
                 <nav className="flex items-center gap-3 sm:gap-7">
                     <a href="#how-it-works" className="hidden text-sm text-[#a6b3aa] transition hover:text-white sm:inline">যেভাবে কাজ করে</a>
                     <a href="#why-taskmint" className="hidden text-sm text-[#a6b3aa] transition hover:text-white sm:inline">কেন TaskMint</a>
+                    <Link href="/ads" className="text-sm text-[#a6b3aa] transition hover:text-white">বিজ্ঞাপন</Link>
                     {signedIn ? (
                         <>
                             <Link href="/dashboard" className="text-sm font-semibold text-white transition hover:text-[#c9f36a]">আমার ড্যাশবোর্ড</Link>

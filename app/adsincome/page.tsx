@@ -5,7 +5,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { CampaignTimer } from "./campaign-timer";
 import { startCampaignSessionAction } from "./actions";
 import { AdsterraSponsoredOfferButton } from "./adsterra-sponsored-offer";
-import { AdsterraUnitCatalog } from "./adsterra-unit-catalog";
 import { resolveAdsterraConfig } from "@/lib/ads/adsterra-config.mjs";
 
 export const dynamic = "force-dynamic";
@@ -110,6 +109,7 @@ export default async function AdsIncomePage({
                     <span className="grid size-8 place-items-center rounded-lg bg-[#c9f36a] text-xs font-black text-[#17210d]">T</span>taskmint
                 </Link>
                 <nav className="flex items-center gap-2 sm:gap-3">
+                    <Link href="/ads" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] transition hover:bg-white/5 hover:text-white">বিজ্ঞাপন</Link>
                     <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] transition hover:bg-white/5 hover:text-white">ড্যাশবোর্ড</Link>
                     <Link href="/advertiser" className="rounded-lg px-3 py-2 text-sm font-medium text-[#a9b5aa] transition hover:bg-white/5 hover:text-white">কাজ পোস্ট</Link>
                     <form action={logoutAction}><button type="submit" className="rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-[#bdc9be] transition hover:border-white/30 hover:bg-white/4 hover:text-white">লগ আউট</button></form>
@@ -146,7 +146,6 @@ export default async function AdsIncomePage({
                 </div>
             </section>
 
-            <div className="mt-4"><AdsterraUnitCatalog /></div>
 
             {params.submitted ? <div role="status" className="mt-4 border border-[#c9f36a]/25 bg-[#c9f36a]/7 px-4 py-3 text-sm text-[#d6f5a4]">আপনার জমা কাজ পাওয়া গেছে। পুরস্কার বিজ্ঞাপনদাতার পর্যালোচনার অপেক্ষায় আছে।</div> : null}
             {params.error ? <div role="alert" className="mt-4 border border-[#e88d82]/30 bg-[#e88d82]/8 px-4 py-3 text-sm text-[#f0b9b1]">{params.error}</div> : null}
